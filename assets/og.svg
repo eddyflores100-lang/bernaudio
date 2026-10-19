@@ -1,0 +1,38 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#06080C"/>
+  <g opacity="0.35">
+    <g fill="#2DD4BF">
+      <rect x="80" y="430" width="18" height="120" rx="4"/>
+      <rect x="130" y="380" width="18" height="170" rx="4" opacity=".7"/>
+      <rect x="180" y="460" width="18" height="90" rx="4" opacity=".5"/>
+      <rect x="230" y="340" width="18" height="210" rx="4" opacity=".8"/>
+      <rect x="280" y="410" width="18" height="140" rx="4" opacity=".6"/>
+      <rect x="330" y="470" width="18" height="80" rx="4" opacity=".4"/>
+      <rect x="380" y="300" width="18" height="250" rx="4" opacity=".9"/>
+      <rect x="430" y="390" width="18" height="160" rx="4" opacity=".6"/>
+      <rect x="480" y="450" width="18" height="100" rx="4" opacity=".5"/>
+      <rect x="530" y="360" width="18" height="190" rx="4" opacity=".75"/>
+      <rect x="580" y="420" width="18" height="130" rx="4" opacity=".55"/>
+      <rect x="630" y="470" width="18" height="80" rx="4" opacity=".4"/>
+      <rect x="680" y="330" width="18" height="220" rx="4" opacity=".85"/>
+      <rect x="730" y="400" width="18" height="150" rx="4" opacity=".6"/>
+      <rect x="780" y="450" width="18" height="100" rx="4" opacity=".45"/>
+      <rect x="830" y="370" width="18" height="180" rx="4" opacity=".7"/>
+      <rect x="880" y="430" width="18" height="120" rx="4" opacity=".5"/>
+      <rect x="930" y="460" width="18" height="90" rx="4" opacity=".4"/>
+      <rect x="980" y="350" width="18" height="200" rx="4" opacity=".8"/>
+      <rect x="1030" y="410" width="18" height="140" rx="4" opacity=".6"/>
+      <rect x="1080" y="440" width="18" height="110" rx="4" opacity=".45"/>
+    </g>
+  </g>
+  <g transform="translate(80,120)">
+    <rect width="72" height="72" rx="19" fill="#134E4A"/>
+    <rect width="72" height="72" rx="19" stroke="rgba(45,212,191,.45)" stroke-width="1.5"/>
+    <path d="M18 36v0M18 30v12M27 22v28M36 16v40M45 26v20M54 30v12" stroke="#EAFDF9" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <text x="180" y="172" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="700" fill="#E8EEF6">Bern<tspan fill="#2DD4BF">Audio</tspan></text>
+  <text x="80" y="290" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="700" fill="#E8EEF6">El análisis de audio profesional,</text>
+  <text x="80" y="370" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="700" fill="#2DD4BF">al alcance de todos.</text>
+  <text x="80" y="445" font-family="Arial, Helvetica, sans-serif" font-size="26" fill="#97A5B9">Medición en tiempo real · RTA · Espectrograma · Transferencia · IR · SPL remoto · IA</text>
+  <text x="80" y="560" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="#5D6B80">Windows · macOS · Linux · iPad — bernaudio</text>
+</svg>

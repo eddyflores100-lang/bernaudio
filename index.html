@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BernAudio — Medición y alineación de audio en tiempo real</title>
+  <meta name="description" content="BernAudio es la plataforma de medición acústica en tiempo real para afinar y monitorear sistemas de sonido. RTA, espectrograma, función de transferencia, IR, SPL remoto e IA de alineación. Gratis en Windows, macOS, Linux e iPad." />
+  <meta property="og:title" content="BernAudio — El análisis de audio profesional, al alcance de todos" />
+  <meta property="og:description" content="Mide, alinea y monitorea sistemas de sonido en tiempo real. Gratis para siempre en la edición Free." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="assets/og.svg" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<!-- ══════════════ NAV ══════════════ -->
+<header class="nav" id="nav">
+  <div class="container nav-inner">
+    <a href="#inicio" class="brand" aria-label="BernAudio — inicio">
+      <svg class="brand-mark" width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect x="1" y="1" width="30" height="30" rx="8" fill="url(#bgGrad)"/>
+        <rect x="1" y="1" width="30" height="30" rx="8" stroke="rgba(45,212,191,.35)" stroke-width="1"/>
+        <path d="M8 14v4M12 10v12M16 6v20M20 11v10M24 14v4" stroke="#EAFDF9" stroke-width="2.4" stroke-linecap="round"/>
+        <defs><linearGradient id="bgGrad" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#0F3D36"/><stop offset="1" stop-color="#134E4A"/></linearGradient></defs>
+      </svg>
+      <span class="brand-name">Bern<em>Audio</em></span>
+    </a>
+    <nav class="nav-links" id="navLinks" aria-label="Navegación principal">
+      <a href="#caracteristicas">Características</a>
+      <a href="#demo">Demo</a>
+      <a href="#compara">Compara</a>
+      <a href="#precios">Precios</a>
+      <a href="#faq">FAQ</a>
+      <a href="#descargar" class="btn btn-sm btn-primary nav-cta">Descargar beta</a>
+    </nav>
+    <button class="nav-burger" id="navBurger" aria-label="Abrir menú" aria-expanded="false" aria-controls="navLinks">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main id="inicio">
+
+<!-- ══════════════ HERO ══════════════ -->
+<section class="hero">
+  <canvas id="heroViz" aria-hidden="true"></canvas>
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <span class="badge-pill"><span class="dot"></span> v1.0 Beta pública — gratis para siempre</span>
+      <h1>El análisis de audio profesional, <span class="grad">al alcance de todos</span>.</h1>
+      <p class="lead">
+        BernAudio es la plataforma de medición en tiempo real para diseñar, afinar y
+        monitorear sistemas de sonido. Todo lo que esperas de un estándar de la industria,
+        y lo que ninguno te había dado: <strong>asistente de IA, colaboración en la nube
+        y un precio honesto</strong>.
+      </p>
+      <div class="hero-cta">
+        <a href="#descargar" class="btn btn-primary btn-lg">Descargar gratis</a>
+        <a href="#demo" class="btn btn-ghost btn-lg">Ver la demo
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+        </a>
+      </div>
+      <ul class="os-row" aria-label="Plataformas disponibles">
+        <li>Windows</li><li>macOS</li><li>Linux</li><li>iPad</li>
+      </ul>
+      <p class="hero-note">Sin licencias de $1,299. Sin suscripciones obligatorias. Tu medidor, tus reglas.</p>
+    </div>
+
+    <!-- Mockup interactivo de la app -->
+    <div class="app-window reveal" id="appWindow">
+      <div class="app-titlebar">
+        <span class="tb-dots"><i></i><i></i><i></i></span>
+        <span class="tb-title">BernAudio 1.0 — Arena Nacional</span>
+        <span class="tb-rec"><i class="rec-dot"></i> REC</span>
+      </div>
+      <div class="app-toolbar">
+        <span class="chip chip-active">M1 L/R</span>
+        <span class="chip">Sub L</span>
+        <span class="chip">Patio A</span>
+        <span class="chip chip-gen">Rosa −20 dBFS</span>
+      </div>
+      <div class="app-tabs" role="tablist" aria-label="Vistas de medición">
+        <button class="app-tab is-active" role="tab" aria-selected="true" data-mode="rta">RTA</button>
+        <button class="app-tab" role="tab" aria-selected="false" data-mode="spec">Espectrograma</button>
+        <button class="app-tab" role="tab" aria-selected="false" data-mode="tf">Transferencia</button>
+      </div>
+      <div class="app-canvas-wrap">
+        <canvas id="demoCanvas" aria-label="Visualización de medición en tiempo real"></canvas>
+      </div>
+      <div class="app-statusbar">
+        <span id="readoutF">— Hz</span>
+        <span id="readoutL">— dB</span>
+        <span id="readoutC">—</span>
+        <span class="sb-right">4 engines · 48 kHz</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ STATS ══════════════ -->
+<section class="stats" aria-label="Cifras clave">
+  <div class="container stats-grid">
+    <div class="stat"><span class="stat-num">±0.1 <small>dB</small></span><span class="stat-label">precisión calibrada</span></div>
+    <div class="stat"><span class="stat-num">&lt;1 <small>ms</small></span><span class="stat-label">sync inalámbrico</span></div>
+    <div class="stat"><span class="stat-num">192 <small>kHz</small></span><span class="stat-label">muestreo nativo</span></div>
+    <div class="stat"><span class="stat-num">4</span><span class="stat-label">plataformas nativas</span></div>
+  </div>
+</section>
+
+<!-- ══════════════ POR QUÉ ══════════════ -->
+<section class="section" id="porque">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">¿Por qué otro analizador?</span>
+      <h2>Las herramientas serias eran caras, rígidas o incompletas. <span class="grad">Hasta ahora.</span></h2>
+      <p class="section-sub">Analizamos a los gigantes — Smaart v9, Open Sound Meter, REW — y construimos lo que faltaba.</p>
+    </div>
+    <div class="why-grid">
+      <article class="why-card reveal">
+        <span class="why-num">01</span>
+        <h3>El estándar de la industria cuesta $1,299</h3>
+        <p>Una licencia perpetua de Smaart Suite sale $1,299 USD y su suscripción, $399 al año. BernAudio Free te da medición profesional real por <strong>$0</strong>, y Pro cuesta <strong>5 veces menos</strong> que la Suite. El conocimiento no debería tener peaje.</p>
+      </article>
+      <article class="why-card reveal">
+        <span class="why-num">02</span>
+        <h3>Trabajas donde el software te deja fuera</h3>
+        <p>Los líderes del mercado no tienen versión para Linux ni para iPad. BernAudio es nativo en <strong>Windows, macOS, Linux e iPad</strong> — con la misma sesión abierta en todas. Tu herramienta viaja contigo, no al revés.</p>
+      </article>
+      <article class="why-card reveal">
+        <span class="why-num">03</span>
+        <h3>Afinar no debería requerir un máster</h3>
+        <p>El Asistente de IA interpreta tus mediciones y sugiere <strong>delay, ganancia y EQ</strong> con su justificación técnica. Tú tomas la decisión final; la IA verifica cada paso. Aprender a medir nunca fue tan rápido.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ CARACTERÍSTICAS ══════════════ -->
+<section class="section" id="caracteristicas">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">Características</span>
+      <h2>Todo el arsenal para afinar, <span class="grad">en una sola app</span></h2>
+      <p class="section-sub">Motores de medición independientes, configuración con arrastrar y soltar, y renderizado acelerado por GPU.</p>
+    </div>
+    <div class="feat-grid">
+      <article class="feat-card reveal">
+        <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg></span>
+        <h3>RTA en tiempo real</h3>
+        <p>Resolución de 1/1, 1/3 y 1/6 de octava, FFT de hasta 128K, promediado espacial multizona y curvas objetivo con tolerancia visual.</p>
+      </article>
+      <article class="feat-card reveal">
+        <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l3-9 4 18 3-9h7"/></svg></span>
+        <h3>Espectrograma GPU</h3>
+        <p>Mapa de calor continuo hasta 192 kHz con paletas ajustables, detección instantánea de feedback, ruidos y resonancias de sala.</p>
+      </article>
+      <article class="feat-card reveal">
+        <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg></span>
+        <h3>Función de transferencia</h3>
+        <p>Magnitud, fase y coherencia con doble ventana FFT y MTW. Sincroniza la referencia con arrastre de delay automático.</p>
+      </article>
+      <article class="feat-card reveal">
+        <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+        <h3>Impulse Response + LIFFT</h3>
+        <p>Captura el impulso, encuentra el delay del sistema y analiza reflexiones tempranas con la transformada inversa integrada.</p>
+      </article>
+      <article class="feat-card reveal feat-hot">
+        <span class="feat-flag">Exclusivo</span>
+        <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.7 9.7 0 0 1 6.7 2.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.7 9.7 0 0 1-6.7-2.7L3 16"/><path d="M8 16H3v5"/></svg></span>
+        <h3>Sync inalámbrico</h3>
+        <p>Función de transferencia sincronizada <strong>sin cable de referencia</strong> entre dos dispositivos. Montaje en minutos, no en horas.</p>
+      </article>
+      <article class="feat-card reveal">
+        <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.3 19a10 10 0 1 1 17.4 0"/></svg></span>
+        <h3>SPL remoto multicanal</h3>
+        <p>Registro Leq multicanal con alarmas, calibración clase 1 y webviewer en vivo incluido — sin módulos ni costos extra.</p>
+      </article>
+      <article class="feat-card reveal feat-hot">
+        <span class="feat-flag">Exclusivo</span>
+        <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></span>
+        <h3>Asistente IA de alineación</h3>
+        <p>Analiza magnitud, fase y coherencia para sugerir delay, ganancia y EQ del subs, zonas y sistemas auxiliares. Tú apruebas cada cambio.</p>
+      </article>
+      <article class="feat-card reveal feat-hot">
+        <span class="feat-flag">Exclusivo</span>
+        <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg></span>
+        <h3>Colaboración en la nube</h3>
+        <p>Sesiones multiusuario en vivo: tu FOH, el sistémico y el monitorista ven las mismas curvas al mismo tiempo, desde cualquier lugar.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ DEMO ══════════════ -->
+<section class="section demo-section" id="demo">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">Pruébala aquí mismo</span>
+      <h2>Una interfaz que <span class="grad">respira en tiempo real</span></h2>
+      <p class="section-sub">Esto no es un video: es una simulación interactiva de los motores de BernAudio. Cambia de vista y juega.</p>
+    </div>
+    <div class="demo-card reveal">
+      <div class="demo-tabs" role="tablist" aria-label="Motor de demostración">
+        <button class="demo-tab is-active" role="tab" aria-selected="true" data-demo="rta">
+          <strong>RTA · 1/3 oct</strong><span>Espectro de presión sonora</span>
+        </button>
+        <button class="demo-tab" role="tab" aria-selected="false" data-demo="spec">
+          <strong>Espectrograma</strong><span>Frecuencia vs. tiempo</span>
+        </button>
+        <button class="demo-tab" role="tab" aria-selected="false" data-demo="tf">
+          <strong>Función de transferencia</strong><span>Magnitud · fase · coherencia</span>
+        </button>
+      </div>
+      <div class="demo-stage">
+        <canvas id="bigCanvas" aria-label="Simulación del motor de medición"></canvas>
+        <p class="demo-caption" id="demoCaption">Barras de 1/3 de octava con picos de retención (amber) — así se ve una mezcla con ruido rosa de referencia.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ COMPARATIVA ══════════════ -->
+<section class="section" id="compara">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">Comparativa honesta</span>
+      <h2>BernAudio frente a <span class="grad">los grandes</span></h2>
+      <p class="section-sub">Datos públicos de los fabricantes a octubre de 2026. Sin trampas: también mostramos lo que ellos hacen bien.</p>
+    </div>
+    <div class="table-scroll reveal">
+      <table class="cmp">
+        <thead>
+          <tr>
+            <th class="cmp-feat">Característica</th>
+            <th class="cmp-ba">BernAudio Free</th>
+            <th class="cmp-ba cmp-pro">BernAudio Pro</th>
+            <th>Smaart v9 Suite</th>
+            <th>Open Sound Meter</th>
+            <th>REW</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="cmp-feat">Precio</td>
+            <td class="cmp-ba"><strong>$0</strong></td>
+            <td class="cmp-ba cmp-pro"><strong>$199</strong> perpetua</td>
+            <td>$1,299 perpetua</td>
+            <td>Gratis</td>
+            <td>Gratis (donación)</td>
+          </tr>
+          <tr>
+            <td class="cmp-feat">Windows · macOS</td>
+            <td class="cmp-ba"><span class="ok">✓</span></td>
+            <td class="cmp-ba cmp-pro"><span class="ok">✓</span></td>
+            <td><span class="ok">✓</span></td>
+            <td><span class="ok">✓</span></td>
+            <td><span class="ok">✓</span></td>
+          </tr>
+          <tr>
+            <td class="cmp-feat">Linux</td>
+            <td class="cmp-ba"><span class="ok">✓</span></td>
+            <td class="cmp-ba cmp-pro"><span class="ok">✓</span></td>
+            <td><span class="no">✗</span></td>
+            <td><span class="ok">✓</span></td>
+            <td><span class="ok">✓</span></td>
+          </tr>
+          <tr>
+            <td class="cmp-feat">iPad</td>
+            <td class="cmp-ba"><span class="ok">✓</span></td>
+            <td class="cmp-ba cmp-pro"><span class="ok">✓</span></td>
+            <td><span class="no">✗</span></td>
+            <td><span class="ok">✓</span> licencia aparte</td>
+            <td><span class="no">✗</span></td>
+          </tr>
+          <tr>
+            <td class="cmp-feat">RTA + promediado espacial</td>
+            <td class="cmp-ba"><span class="ok">✓</span></td>
+            <td class="cmp-ba cmp-pro"><span class="ok">✓</span></td>
+            <td><span class="ok">✓</span></td>
+            <td><span class="ok">✓</span></td>
+            <td><span class="ok">✓</span></td>
+          </tr>
+          <tr>
+            <td class="cmp-feat">Función de transferencia en vivo</td>
+            <td class="cmp-ba"><span class="ok">✓</span> 2 engines</td>
+            <td class="cmp-ba cmp-pro"><span class="ok">✓</span> ilimitada</td>
+            <td><span class="ok">✓</span></td>
+            <td><span class="ok">✓</span></td>
+            <td>Loop / offline</td>
+          </tr>
+          <tr>
+            <td class="cmp-feat">Respuesta a impulso (IR)</td>
+            <td class="cmp-ba"><span class="no">✗</span></td>
+            <td class="cmp-ba cmp-pro"><span class="ok">✓</span> + LIFFT</td>
+            <td><span class="ok">✓</span></td>
+            <td><span class="no">✗</span> parcial</td>
+            <td><span class="ok">✓</span> foco en salas</td>
+          </tr>
+          <tr>
+            <td class="cmp-feat">Sync sin cable de referencia</td>
+            <td class="cmp-ba"><span class="no">✗</span></td>
+            <td class="cmp-ba cmp-pro"><span class="ok">✓</span></td>
+            <td><span class="ok">✓</span> SyncSource 9.1+</td>
+            <td><span class="no">✗</span></td>
+            <td><span class="no">✗</span></td>
+          </tr>
+          <tr>
+            <td class="cmp-feat">SPL remoto + webviewer</td>
+            <td class="cmp-ba"><span class="no">✗</span></td>
+            <td class="cmp-ba cmp-pro"><span class="ok">✓</span> incluido</td>
+            <td><span class="ok">✓</span> módulos extra</td>
+            <td><span class="no">✗</span></td>
+            <td><span class="no">✗</span></td>
+          </tr>
+          <tr>
+            <td class="cmp-feat">Asistente IA de alineación</td>
+            <td class="cmp-ba"><span class="no">✗</span></td>
+            <td class="cmp-ba cmp-pro"><span class="ok">✓</span></td>
+            <td><span class="no">✗</span></td>
+            <td><span class="no">✗</span></td>
+            <td><span class="no">✗</span></td>
+          </tr>
+          <tr>
+            <td class="cmp-feat">Colaboración en la nube</td>
+            <td class="cmp-ba"><span class="no">✗</span></td>
+            <td class="cmp-ba cmp-pro">Con Studio</td>
+            <td><span class="no">✗</span></td>
+            <td><span class="no">✗</span></td>
+            <td><span class="no">✗</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-footnote">* Smaart v9: Rational Acoustics (suite $1,299 / suscripción $399-año). Open Sound Meter: descarga gratuita con iPad de pago. REW: gratuito orientado a acústica de salas. Comparativa informativa basada en información pública; verifica siempre con cada fabricante.</p>
+  </div>
+</section>
+
+<!-- ══════════════ PRECIOS ══════════════ -->
+<section class="section" id="precios">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">Precios</span>
+      <h2>Un precio <span class="grad">que no necesita disculpas</span></h2>
+      <p class="section-sub">Elige licencia perpetua o suscripción. Tu licencia nunca expira: las actualizaciones del primer año van incluidas.</p>
+      <div class="price-toggle" role="group" aria-label="Modelo de licencia">
+        <button class="pt-btn is-active" data-plan="perp" aria-pressed="true">Perpetua</button>
+        <button class="pt-btn" data-plan="sub" aria-pressed="false">Suscripción</button>
+      </div>
+    </div>
+    <div class="price-grid">
+      <article class="price-card reveal">
+        <h3>Free</h3>
+        <p class="price-desc">Para empezar a medir hoy mismo, sin tarjeta.</p>
+        <div class="price-amount"><span class="currency">$</span><span class="amount">0</span><span class="per" data-perp="para siempre" data-sub="para siempre">para siempre</span></div>
+        <ul class="price-list">
+          <li>RTA 1/1 y 1/3 de octava + espectrograma</li>
+          <li>Función de transferencia (2 engines)</li>
+          <li>SPL con registro local</li>
+          <li>Generador de señal completo</li>
+          <li>Windows · macOS · Linux · iPad</li>
+        </ul>
+        <a href="#descargar" class="btn btn-ghost btn-block">Descargar beta</a>
+      </article>
+
+      <article class="price-card price-hero reveal">
+        <span class="price-flag">Más popular</span>
+        <h3>Pro</h3>
+        <p class="price-desc">El kit completo para sistémicos y FOH profesionales.</p>
+        <div class="price-amount">
+          <span class="currency">$</span><span class="amount" data-perp="199" data-sub="9">199</span>
+          <span class="per" data-perp="pago único" data-sub="por mes">pago único</span>
+        </div>
+        <ul class="price-list">
+          <li>Todo lo de Free, sin límites</li>
+          <li>Sync inalámbrico sin cable de referencia</li>
+          <li>Impulse Response + LIFFT</li>
+          <li>Asistente IA de alineación</li>
+          <li>SPL remoto multicanal + webviewer</li>
+          <li>192 kHz y FFT de 128K</li>
+          <li>Actualizaciones del primer año incluidas</li>
+        </ul>
+        <a href="#descargar" class="btn btn-primary btn-block">Obtener Pro</a>
+      </article>
+
+      <article class="price-card reveal">
+        <h3>Studio</h3>
+        <p class="price-desc">Para equipos y empresas que afinan juntos.</p>
+        <div class="price-amount">
+          <span class="currency">$</span><span class="amount" data-perp="499" data-sub="19">499</span>
+          <span class="per" data-perp="pago único" data-sub="por mes / usuario">pago único</span>
+        </div>
+        <ul class="price-list">
+          <li>Todo lo de Pro</li>
+          <li>Sesiones colaborativas multiusuario</li>
+          <li>Proyectos compartidos en la nube</li>
+          <li>API e integraciones (Midas, Dante, Q-SYS)</li>
+          <li>Soporte prioritario 24/7</li>
+        </ul>
+        <a href="#descargar" class="btn btn-ghost btn-block">Hablar con ventas</a>
+      </article>
+    </div>
+    <p class="price-note">¿Estudiante o docente? Escribe a <strong>edu@bernaudio.com</strong> — descuento del 60% en Pro y Studio.</p>
+  </div>
+</section>
+
+<!-- ══════════════ TESTIMONIOS ══════════════ -->
+<section class="section" id="testimonios">
+  <div class="container">
+    <div class="section-head">
+      <span class="kicker">Testimonios</span>
+      <h2>Los que ya <span class="grad">midieron la diferencia</span></h2>
+    </div>
+    <div class="testi-grid">
+      <figure class="testi-card reveal">
+        <blockquote>«Pasé de pedirle prestada la licencia de Smaart al productor a llevar mi propio kit en el iPad. El sync inalámbrico me ahorra media hora de montaje en cada venue.»</blockquote>
+        <figcaption>
+          <span class="avatar" aria-hidden="true">MR</span>
+          <span><strong>Mariana Ríos</strong><br />Ingeniera FOH — gira latina</span>
+        </figcaption>
+      </figure>
+      <figure class="testi-card reveal">
+        <blockquote>«Instalé 42 zonas con logging SPL remoto y webviewer sin pagar módulos adicionales. El cliente ve sus niveles desde el celular y yo duermo tranquilo.»</blockquote>
+        <figcaption>
+          <span class="avatar" aria-hidden="true">CM</span>
+          <span><strong>Carlos Mendoza</strong><br />Diseño de sistemas — CDMX</span>
+        </figcaption>
+      </figure>
+      <figure class="testi-card reveal">
+        <blockquote>«Mis alumnos miden con la versión Free en Linux desde la primera clase. El asistente de IA explica el porqué de cada sugerencia: es como tener un tutor dentro del software.»</blockquote>
+        <figcaption>
+          <span class="avatar" aria-hidden="true">LF</span>
+          <span><strong>Lucía Fernández</strong><br />Docente de audio — Buenos Aires</span>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ FAQ ══════════════ -->
+<section class="section" id="faq">
+  <div class="container container-narrow">
+    <div class="section-head">
+      <span class="kicker">Preguntas frecuentes</span>
+      <h2>Lo que todos <span class="grad">nos preguntan</span></h2>
+    </div>
+    <div class="faq-list">
+      <details class="faq-item reveal">
+        <summary>¿BernAudio es realmente gratis? ¿Dónde está la trampa?</summary>
+        <p>No hay trampa. La edición Free es funcional para siempre: RTA, espectrograma, función de transferencia básica y SPL local. Nos financiamos con las licencias Pro y Studio, que desbloquean herramientas de nivel productivo (sync inalámbrico, IR, IA, SPL remoto). Si algún día dejamos de desarrollar, tu licencia perpetua sigue siendo tuya.</p>
+      </details>
+      <details class="faq-item reveal">
+        <summary>¿En qué se diferencia de Smaart v9?</summary>
+        <p>Smaart es un excelente software y el estándar histórico — lo respetamos. BernAudio ofrece los mismos motores de medición nucleares (RTA, espectrograma, función de transferencia, IR) con cuatro diferencias clave: precio (Pro $199 vs. Suite $1,299), plataformas nativas extra (Linux e iPad), asistente de IA de alineación y colaboración en la nube multiusuario. Smaart mantiene ventajas en ecosistema de formación certificada y años de trayectoria; nosotros, en innovación y accesibilidad.</p>
+      </details>
+      <details class="faq-item reveal">
+        <summary>¿Necesito un micrófono calibrado y una interfaz especial?</summary>
+        <p>Para mediciones de referencia recomendamos un micrófono omnidireccional calibrado (tipo UMIK-1/UMIK-2 o equivalente con archivo de calibración) y una interfaz de 2 entradas. Cualquier interfaz con ASIO (Windows), Core Audio (macOS/iPad) o ALSA/PipeWire (Linux) funciona. BernAudio incluye el asistente de calibración de nivel y carga archivos .cal de tu micrófono.</p>
+      </details>
+      <details class="faq-item reveal">
+        <summary>¿Funciona sin conexión a internet?</summary>
+        <p>Sí. Toda la medición — motores, generador, registro SPL — corre 100% local en tu dispositivo. La conexión solo se usa para funciones opcionales: sesiones colaborativas, webviewer remoto y sincronización de proyectos. En el show, modo avión y a afinar.</p>
+      </details>
+      <details class="faq-item reveal">
+        <summary>¿La beta es estable? ¿Cuándo sale la versión 1.0?</summary>
+        <p>La beta pública actual es estable para trabajo de campo y la usan cientos de sistémicos en producción real. La versión 1.0 llega en el segundo trimestre de 2026 con el SDK de integraciones y el modo Spectra-3D. Quienes compren Pro durante la beta obtienen la licencia perpetua al precio early bird y v1.0 sin costo adicional.</p>
+      </details>
+      <details class="faq-item reveal">
+        <summary>¿Puedo contribuir o integrar BernAudio con mi flujo de trabajo?</summary>
+        <p>Sí. El SDK de mediciones y la API local son abiertos y están documentados en el repositorio: automatiza mediciones desde Python, integra controles en tus shows o construye paneles para consolas. Además hay comunidad activa en Discord con canal de feature requests que el equipo responde cada semana.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ CTA FINAL ══════════════ -->
+<section class="cta-final" id="descargar">
+  <div class="container cta-box reveal">
+    <canvas id="ctaViz" aria-hidden="true"></canvas>
+    <h2>Tu próximo show suena mejor. <span class="grad">Empieza hoy, gratis.</span></h2>
+    <p>Descarga la beta de BernAudio para Windows, macOS, Linux o iPad y haz tu primera medición en menos de 5 minutos.</p>
+    <div class="hero-cta cta-center">
+      <a href="#" class="btn btn-primary btn-lg" aria-label="Descargar BernAudio beta">Descargar BernAudio beta</a>
+      <a href="#demo" class="btn btn-ghost btn-lg">Probar la demo online</a>
+    </div>
+    <p class="cta-meta">Sin registro · Sin tarjeta · 42 MB · Actualizaciones automáticas</p>
+  </div>
+</section>
+
+</main>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer class="footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <a href="#inicio" class="brand">
+        <svg class="brand-mark" width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <rect x="1" y="1" width="30" height="30" rx="8" fill="url(#bgGrad2)"/>
+          <path d="M8 14v4M12 10v12M16 6v20M20 11v10M24 14v4" stroke="#EAFDF9" stroke-width="2.4" stroke-linecap="round"/>
+          <defs><linearGradient id="bgGrad2" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#0F3D36"/><stop offset="1" stop-color="#134E4A"/></linearGradient></defs>
+        </svg>
+        <span class="brand-name">Bern<em>Audio</em></span>
+      </a>
+      <p>Medición y alineación de audio profesional en tiempo real. Hecho por y para la comunidad de sonido.</p>
+      <div class="footer-social">
+        <a href="#" aria-label="GitHub de BernAudio"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55 0-.27-.01-1.17-.02-2.12-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.75 2.69 1.25 3.34.95.1-.74.4-1.25.72-1.53-2.55-.29-5.23-1.28-5.23-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.66.41.36.78 1.05.78 2.13 0 1.54-.01 2.78-.01 3.16 0 .31.21.67.8.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg></a>
+        <a href="#" aria-label="Discord de BernAudio"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.32 4.37a19.8 19.8 0 0 0-4.89-1.52.07.07 0 0 0-.08.04c-.21.38-.44.87-.6 1.25a18.27 18.27 0 0 0-5.5 0 12.6 12.6 0 0 0-.61-1.25.08.08 0 0 0-.08-.04 19.74 19.74 0 0 0-4.88 1.52.07.07 0 0 0-.03.03C.53 9.05-.32 13.58.1 18.06a.08.08 0 0 0 .03.05 19.9 19.9 0 0 0 6 3.03.08.08 0 0 0 .08-.03c.46-.63.87-1.3 1.22-2a.08.08 0 0 0-.04-.11 13.1 13.1 0 0 1-1.87-.89.08.08 0 0 1-.01-.13c.13-.09.25-.19.37-.29a.07.07 0 0 1 .08-.01c3.93 1.8 8.18 1.8 12.06 0a.07.07 0 0 1 .08.01c.12.1.24.2.37.29a.08.08 0 0 1-.01.13c-.6.35-1.22.64-1.87.88a.08.08 0 0 0-.04.11c.36.7.77 1.37 1.22 2a.08.08 0 0 0 .08.03 19.84 19.84 0 0 0 6.02-3.03.08.08 0 0 0 .03-.05c.5-5.18-.84-9.68-3.55-13.66a.06.06 0 0 0-.03-.03zM8.02 15.33c-1.18 0-2.16-1.08-2.16-2.42 0-1.33.96-2.42 2.16-2.42 1.21 0 2.18 1.1 2.16 2.42 0 1.34-.96 2.42-2.16 2.42zm7.97 0c-1.18 0-2.16-1.08-2.16-2.42 0-1.33.95-2.42 2.16-2.42 1.21 0 2.18 1.1 2.16 2.42 0 1.34-.95 2.42-2.16 2.42z"/></svg></a>
+        <a href="#" aria-label="YouTube de BernAudio"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 0 0 .5 6.19C0 8.07 0 12 0 12s0 3.93.5 5.81a3.02 3.02 0 0 0 2.12 2.14c1.88.5 9.38.5 9.38.5s7.5 0 9.38-.5a3.02 3.02 0 0 0 2.12-2.14C24 15.93 24 12 24 12s0-3.93-.5-5.81zM9.55 15.57V8.43L15.82 12l-6.27 3.57z"/></svg></a>
+      </div>
+    </div>
+    <nav class="footer-col" aria-label="Producto">
+      <h4>Producto</h4>
+      <a href="#caracteristicas">Características</a>
+      <a href="#precios">Precios</a>
+      <a href="#demo">Demo online</a>
+      <a href="#descargar">Descargas</a>
+      <a href="#">Hoja de ruta</a>
+    </nav>
+    <nav class="footer-col" aria-label="Recursos">
+      <h4>Recursos</h4>
+      <a href="#">Documentación</a>
+      <a href="#">SDK y API</a>
+      <a href="#faq">Preguntas frecuentes</a>
+      <a href="#">Formación</a>
+      <a href="#">Comunidad en Discord</a>
+    </nav>
+    <nav class="footer-col" aria-label="Compañía">
+      <h4>Compañía</h4>
+      <a href="#">Sobre nosotros</a>
+      <a href="#">Blog</a>
+      <a href="#">Prensa</a>
+      <a href="#">Contacto</a>
+      <a href="#">Programa educativo</a>
+    </nav>
+  </div>
+  <div class="container footer-bottom">
+    <p>© <span id="year">2026</span> BernAudio. Todos los derechos reservados.</p>
+    <p class="footer-legal"><a href="#">Privacidad</a> · <a href="#">Términos</a> · <a href="#">EULA</a></p>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>
