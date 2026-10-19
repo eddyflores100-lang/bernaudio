@@ -316,6 +316,93 @@
     return out;
   }
 
+  /* ── Correlación cruzada FFT (delay finder / TF) ────────────
+     IFFT(conj(A)·B) — el pico en lag=+D indica que b está retrasada
+     D muestras respecto a a (verificado analíticamente).           */
+  function xcorrPeak(a, b, fft) {
+    const N = a.length;
+    const are = new Float64Array(N), aim = new Float64Array(N);
+    const bre = new Float64Array(N), bim = new Float64Array(N);
+    are.set(a); bre.set(b);
+    const f = fft || new FFT(N);
+    f.forward(are, aim);
+    f.forward(bre, bim);
+    for (let i = 0; i < N; i++) {
+      const rr = are[i] * bre[i] + aim[i] * bim[i];   // Re(conj(A)·B)
+      const ii = are[i] * bim[i] - aim[i] * bre[i];   // Im(conj(A)·B)
+      bre[i] = rr; bim[i] = ii;
+    }
+    f.inverse(bre, bim);
+    let best = 0, bestV = -Infinity;
+    for (let i = 0; i < N; i++) if (bre[i] > bestV) { bestV = bre[i]; best = i; }
+    const lag = best > N / 2 ? best - N : best;       // lag con signo
+    let s2 = 0;
+    for (let i = 0; i < N; i++) s2 += bre[i] * bre[i];
+    const rms = Math.sqrt(s2 / N) || 1e-20;
+    const conf = clamp(bestV / (rms * 40), 0, 1);     // 1 → pico nítido
+    return { lag, peak: bestV, conf, corr: Float64Array.from(bre) };
+  }
+
+  /* ── Calibración de micrófono: parseo e interpolación ────── */
+  /* Token numérico con sufijo opcional (1k → 1000; 250Hz → 250) */
+  function parseNumTok(tok) {
+    if (!tok) return NaN;
+    const m = tok.match(/^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/);
+    if (!m) return NaN;
+    let v = parseFloat(m[0]);
+    const rest = tok.slice(m[0].length).toLowerCase();
+    if (rest.charAt(0) === 'k') v *= 1000;
+    return v;
+  }
+
+  /* Parsea texto de archivo de calibración (.cal/.csv/.txt/.frd).
+     Acepta líneas con 2+ números: frecuencia [Hz], corrección [dB].
+     Ignora cabeceras, comentarios (#, ;, *) y líneas sin números.
+     Devuelve { freqs: Float64Array, db: Float64Array } o null.     */
+  function parseCalFile(text) {
+    if (!text) return null;
+    const pts = [];
+    const lines = String(text).split(/\r?\n/);
+    for (let raw of lines) {
+      const ln = raw.trim();
+      if (!ln || /^[#;*\/]/.test(ln)) continue;
+      const toks = ln.split(/[\s,;\t]+/);
+      const nums = [];
+      for (let t of toks) {
+        const v = parseNumTok(t);
+        if (isFinite(v)) nums.push(v);
+        if (nums.length >= 2) break;
+      }
+      if (nums.length < 2) continue;
+      const f = Math.abs(nums[0]);
+      const db = nums[1];
+      if (f > 0 && f <= 1e6 && isFinite(db) && Math.abs(db) <= 60) pts.push([f, db]);
+    }
+    if (pts.length < 5) return null;
+    pts.sort((a, b) => a[0] - b[0]);
+    const freqs = new Float64Array(pts.length);
+    const db = new Float64Array(pts.length);
+    for (let i = 0; i < pts.length; i++) { freqs[i] = pts[i][0]; db[i] = pts[i][1]; }
+    return { freqs, db };
+  }
+
+  /* Interpolación de curva de calibración en eje log-frecuencia.
+     Fuera de rango: sujeta al extremo más cercano. */
+  function interpLogDb(f, freqs, db) {
+    const n = freqs.length;
+    if (!n) return 0;
+    if (f <= freqs[0]) return db[0];
+    if (f >= freqs[n - 1]) return db[n - 1];
+    let lo = 0, hi = n - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (freqs[mid] <= f) lo = mid; else hi = mid;
+    }
+    const den = Math.log(freqs[hi]) - Math.log(freqs[lo]) || 1;
+    const t = (Math.log(f) - Math.log(freqs[lo])) / den;
+    return db[lo] + (db[hi] - db[lo]) * t;
+  }
+
   /* ── Colormaps para espectrograma ────────────────────────── */
   function colormap(name) {
     const stops = {
@@ -342,6 +429,7 @@
     dbFromPower, dbFromAmp, powerFromDb, ampFromDb, clamp, nextPow2,
     makeWhiteNoise, makePinkNoise, makeSweep,
     deconvolveIR, findPeak, schroederRT60, encodeWav, fracOctSmooth, colormap,
+    xcorrPeak, parseCalFile, interpLogDb,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = DSP;

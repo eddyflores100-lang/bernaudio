@@ -70,12 +70,13 @@
     /* Potencia total ponderada desde freqDb (dB/bin) */
     totalPower(weightDb) {
       const cal = global.BA_STATE.cal;
+      const calFn = global.BA_STATE.micCalDb;
       let p = 0;
       const binHz = AE.sampleRate / AE.fftSize;
       for (let i = 1; i < AE.freqDb.length; i++) {
         const f = i * binHz;
         if (f < 20 || f > 20000) continue;
-        const l = AE.freqDb[i] + cal + (weightDb ? weightDb(f) : 0);
+        const l = AE.freqDb[i] + cal + calFn(f) + (weightDb ? weightDb(f) : 0);
         p += Math.pow(10, l / 10);
       }
       return p;
@@ -185,6 +186,9 @@
       const wf = wSel === 'A' ? DSP.aWeightDb : wSel === 'C' ? DSP.cWeightDb : null;
 
       const lv = DSP.bandLevels(AE.freqDb, binHz, this.bands, cal, wf);
+      /* curva de calibración del micro aplicada al centro de cada banda */
+      const calFn = global.BA_STATE.micCalDb;
+      if (calFn) for (let i = 0; i < lv.length; i++) lv[i] += calFn(this.bands[i].fc);
       const alpha = 1 / this.avgN;
       for (let i = 0; i < lv.length; i++) {
         const p = isFinite(lv[i]) ? Math.pow(10, lv[i] / 10) : 0;
@@ -271,13 +275,32 @@
       this.el.spRange.addEventListener('input', () => { this.el.spRangeChip.textContent = this.el.spRange.value; });
       this.el.spFmax.addEventListener('change', () => { this.fmax = +this.el.spFmax.value; this.resetOff(); });
       this.lut = DSP.colormap('audio');
+
+      /* crosshair de lectura (ratón / táctil) */
+      const cv = this.el.cvSpectro;
+      const setPos = (x, y) => { this._mx = x; this._my = y; };
+      cv.addEventListener('mousemove', (e) => {
+        const r = cv.getBoundingClientRect();
+        setPos(e.clientX - r.left, e.clientY - r.top);
+      });
+      cv.addEventListener('mouseleave', () => { this._mx = null; });
+      cv.addEventListener('touchstart', (e) => {
+        const r = cv.getBoundingClientRect(), t = e.touches[0];
+        setPos(t.clientX - r.left, t.clientY - r.top);
+      }, { passive: true });
+      cv.addEventListener('touchmove', (e) => {
+        const r = cv.getBoundingClientRect(), t = e.touches[0];
+        setPos(t.clientX - r.left, t.clientY - r.top);
+      }, { passive: true });
+      cv.addEventListener('touchend', () => { this._mx = null; });
     },
     resetOff() { this.off = null; },
     onFftChange() { this.resetOff(); },
     tick() {
       if (!AE.poll()) return;
       const { ctx, w, h } = BAU.fitCanvas(this.el.cvSpectro);
-      const padL = 44, plotW = w - padL - 2;
+      const padL = 44, padR = 56;
+      const plotW = w - padL - padR;
 
       /* canvas offscreen persistente */
       if (!this.off || this.off.width !== Math.max(1, plotW) || this.off.height !== h) {
@@ -287,12 +310,15 @@
         this.offCtx.fillStyle = '#000'; this.offCtx.fillRect(0, 0, this.off.width, h);
       }
 
-      const top = +this.el.spTop.value + global.BA_STATE.cal;
+      const cal = global.BA_STATE.cal;
+      const calFn = global.BA_STATE.micCalDb;
+      const top = +this.el.spTop.value + cal;
       const range = +this.el.spRange.value;
       const bottom = top - range;
       const binHz = AE.sampleRate / AE.fftSize;
       const nb = AE.freqDb.length;
       const H = h, W = this.off.width;
+      const fmin = 20;
 
       /* desplazar 2 px a la izquierda y pintar columna nueva */
       const step = 2;
@@ -302,15 +328,15 @@
       const img = this.offCtx.getImageData(W - step, 0, step, H);
       const d = img.data;
 
-      const fmin = 20;
       for (let y = 0; y < H; y++) {
         const frac = 1 - y / H; // abajo = graves
         const f = fmin * Math.pow(this.fmax / fmin, frac);
         const bin = f / binHz;
         const i0 = Math.min(nb - 1, Math.floor(bin));
         const t = bin - i0;
-        /* dBFS → dB SPL (suma cal) para coincidir con el dominio de top/range */
-        const v = AE.freqDb[i0] * (1 - t) + AE.freqDb[Math.min(nb - 1, i0 + 1)] * t + global.BA_STATE.cal;
+        /* dBFS → dB SPL (cal de nivel + curva de calibración del micro) */
+        const v = AE.freqDb[i0] * (1 - t) + AE.freqDb[Math.min(nb - 1, i0 + 1)] * t
+          + cal + calFn(f);
         let norm = (v - bottom) / range;           // 0..1
         norm = DSP.clamp(norm, 0, 1);
         const ci = Math.round(norm * 255) * 3;
@@ -345,6 +371,52 @@
         ctx.setLineDash([4, 4]);
         ctx.beginPath(); ctx.moveTo(padL, y0); ctx.lineTo(padL + plotW, y0); ctx.stroke();
         ctx.setLineDash([]);
+      }
+
+      /* ── barra de magnitud (escala completa de color) ── */
+      const cbX = padL + plotW + 12, cbW = 9;
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      for (let i = 0; i <= 8; i++) {
+        const c = Math.round((1 - i / 8) * 255) * 3;
+        grad.addColorStop(i / 8, 'rgb(' + this.lut[c] + ',' + this.lut[c + 1] + ',' + this.lut[c + 2] + ')');
+      }
+      ctx.fillStyle = grad;
+      ctx.fillRect(cbX, 0, cbW, H);
+      ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+      ctx.strokeRect(cbX + 0.5, 0.5, cbW, H - 1);
+      ctx.fillStyle = 'rgba(230,241,238,0.9)';
+      ctx.font = '9px JetBrains Mono, monospace';
+      ctx.fillText('dB', cbX + cbW + 3, 9);
+      ctx.fillText(top.toFixed(0), cbX + cbW + 3, 20);
+      ctx.fillText(((top + bottom) / 2).toFixed(0), cbX + cbW + 3, H / 2 + 3);
+      ctx.fillText(bottom.toFixed(0), cbX + cbW + 3, H - 2);
+
+      /* ── crosshair de lectura frecuencia · magnitud ── */
+      if (this._mx != null && this._mx > padL && this._mx < padL + plotW && this._my > 0 && this._my < H) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(this._mx, 0); ctx.lineTo(this._mx, H);
+        ctx.moveTo(padL, this._my); ctx.lineTo(padL + plotW, this._my);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const frac = 1 - this._my / H;
+        const fRead = fmin * Math.pow(this.fmax / fmin, frac);
+        const bin = fRead / binHz;
+        const i0 = Math.min(nb - 1, Math.floor(bin));
+        const t = bin - i0;
+        const dbRead = AE.freqDb[i0] * (1 - t) + AE.freqDb[Math.min(nb - 1, i0 + 1)] * t + cal + calFn(fRead);
+        const txt = (fRead >= 1000 ? (fRead / 1000).toFixed(2) + ' kHz' : fRead.toFixed(0) + ' Hz')
+          + ' · ' + dbRead.toFixed(1) + ' dB';
+        ctx.font = '11px JetBrains Mono, monospace';
+        const tw = ctx.measureText(txt).width;
+        let tx = this._mx + 8;
+        if (tx + tw > padL + plotW - 4) tx = this._mx - tw - 8;
+        const ty = Math.max(14, this._my - 8);
+        ctx.fillStyle = 'rgba(6,8,12,0.85)';
+        ctx.fillRect(tx - 4, ty - 12, tw + 8, 16);
+        ctx.fillStyle = '#E6F1EE';
+        ctx.fillText(txt, tx, ty);
       }
     },
   };

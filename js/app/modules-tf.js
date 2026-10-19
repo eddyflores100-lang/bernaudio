@@ -136,16 +136,32 @@
     SxyRe: null, SxyIm: null, Sxx: null, Syy: null,
     magDb: null, phaseDeg: null, coher: null, freqs: null,
     delaySamples: null, autoDelay: true, lastDelaySearch: 0,
+    refSource: 'gen',              // 'gen' | 'ch2' (loopback hardware)
+    polarity: false,               // inversión de polaridad (ajuste de fase)
+    traces: [],                    // trazas memorizadas A/B/C para comparar fuentes
     measuring: false, updates: 0,
+    _fft: null, _stall: 0, _lastRefW: -1,
     el: {},
 
     init() {
-      ['tfStart', 'tfStop', 'tfAutoDelay', 'tfFindDelay', 'tfSmooth', 'tfView', 'tfDelayChip', 'cvTf']
+      ['tfStart', 'tfStop', 'tfAutoDelay', 'tfFindDelay', 'tfSmooth', 'tfView', 'tfDelayChip',
+       'tfRef', 'tfDelayMs', 'tfDelayMsChip', 'tfPolarity', 'tfSaveTrace', 'tfClearTraces', 'cvTf']
         .forEach((id) => (this.el[id] = document.getElementById(id)));
       this.el.tfStart.addEventListener('click', () => this.start());
       this.el.tfStop.addEventListener('click', () => this.stop());
       this.el.tfAutoDelay.addEventListener('change', () => { this.autoDelay = this.el.tfAutoDelay.checked; });
       this.el.tfFindDelay.addEventListener('click', () => { this.searchDelay(true); });
+      this.el.tfRef.addEventListener('change', () => {
+        this.refSource = this.el.tfRef.value;
+        if (this.measuring) { this.stop(); this.start(); }
+      });
+      this.el.tfDelayMs.addEventListener('input', () => {
+        this.el.tfDelayMsChip.textContent = (+this.el.tfDelayMs.value).toFixed(1) + ' ms';
+        this._updDelayChip();
+      });
+      this.el.tfPolarity.addEventListener('change', () => { this.polarity = this.el.tfPolarity.checked; });
+      this.el.tfSaveTrace.addEventListener('click', () => this.saveTrace());
+      this.el.tfClearTraces.addEventListener('click', () => { this.traces = []; });
       const n2 = this.W / 2;
       this.SxyRe = new Float64Array(n2 + 1); this.SxyIm = new Float64Array(n2 + 1);
       this.Sxx = new Float64Array(n2 + 1); this.Syy = new Float64Array(n2 + 1);
@@ -156,14 +172,24 @@
 
     start() {
       if (this.measuring || !AE.running) return;
-      /* ruido rosa sonando de fondo */
-      if (!Gen.playing || Gen.el.genType.value !== 'pink') {
+      /* referencia por canal 2 solo si se pidieron 2 canales */
+      if (this.refSource === 'ch2' && AE.channels < 2) {
+        this.refSource = 'gen';
+        this.el.tfRef.value = 'gen';
+        global.UI.setStatus('Canal 2 no activo — usando generador interno');
+      }
+      /* ruido rosa sonando de fondo (solo con referencia interna) */
+      if (this.refSource === 'gen' && (!Gen.playing || Gen.el.genType.value !== 'pink')) {
         Gen.el.genType.value = 'pink'; Gen.el.genType.dispatchEvent(new Event('change'));
         Gen.stop(); Gen.play();
       }
       this.resetAvg();
       this._unsubMic = AE.onBlock((b) => this._push(this.micFifo, b, 'mic'));
-      this._unsubRef = Gen.onRefBlock((b) => this._push(this.refFifo, b, 'ref'));
+      if (this.refSource === 'ch2' && AE.channels >= 2) {
+        this._unsubRef = AE.onBlockCh1((b) => this._push(this.refFifo, b, 'ref'));
+      } else {
+        this._unsubRef = Gen.onRefBlock((b) => this._push(this.refFifo, b, 'ref'));
+      }
       this.measuring = true;
       this.lastDelaySearch = 0;
       global.UI.setStatus('TF midiendo…');
@@ -172,11 +198,12 @@
       this.measuring = false;
       if (this._unsubMic) { this._unsubMic(); this._unsubMic = null; }
       if (this._unsubRef) { this._unsubRef(); this._unsubRef = null; }
-      global.UI.setStatus('medición activa');
+      global.UI.setStatus('TF detenida — puedes guardar traza A/B/C');
     },
     resetAvg() {
       this.SxyRe.fill(0); this.SxyIm.fill(0); this.Sxx.fill(0); this.Syy.fill(0);
       this.updates = 0; this.delaySamples = null;
+      this._stall = 0; this._lastRefW = -1;
       this.el.tfDelayChip.textContent = 'delay: —';
     },
     _push(fifo, block, tag) {
@@ -202,30 +229,38 @@
     searchDelay(force) {
       if (!this.measuring && !force) return;
       const N = this.W;
+      if (this.micW < N + 8192 || this.refW < N + 8192) return;
       const m = new Float64Array(N), r = new Float64Array(N);
-      const mi = new Float64Array(N), mr = new Float64Array(N);
       this._segment(this.micFifo, this.micW, N, m);
       this._segment(this.refFifo, this.refW, N, r);
       const w = DSP.hannWindow(N);
-      const fft = new DSP.FFT(N);
       for (let i = 0; i < N; i++) { m[i] *= w[i]; r[i] *= w[i]; }
-      fft.forward(m, mi); fft.forward(r, mr);
-      /* correlación cruzada circular: IFFT(M · conj(R)) */
-      const cr = new Float64Array(N), ci = new Float64Array(N);
-      for (let i = 0; i < N; i++) {
-        cr[i] = m[i] * r[i] + mi[i] * mr[i];
-        ci[i] = mi[i] * r[i] - m[i] * mr[i];
-      }
-      fft.inverse(cr, ci);
-      let best = 0, bestV = -Infinity;
-      for (let lag = 0; lag < N; lag++) {
-        const v = cr[lag];
-        if (v > bestV) { bestV = v; best = lag; }
-      }
-      const prev = this.delaySamples;
-      this.delaySamples = best;
-      /* mantener continuidad: si salto enorme, mantener el nuevo igualmente (auto) */
-      this.el.tfDelayChip.textContent = 'delay: ' + ((best / AE.sampleRate) * 1000).toFixed(1) + ' ms';
+      if (!this._fft) this._fft = new DSP.FFT(N);
+      /* IFFT(conj(ref)·mic): pico en +D cuando el micro recibe la
+         referencia D muestras después (delay acústico real).        */
+      const res = DSP.xcorrPeak(r, m, this._fft);
+      if (res.conf < 0.08 && this.delaySamples != null) return; // pico débil: mantener anterior
+      this.delaySamples = res.lag;
+      this._updDelayChip();
+    },
+
+    _updDelayChip() {
+      if (this.delaySamples == null) { this.el.tfDelayChip.textContent = 'delay: —'; return; }
+      const eff = this.delaySamples + Math.round((+this.el.tfDelayMs.value / 1000) * AE.sampleRate);
+      const ms = (eff / AE.sampleRate) * 1000;
+      this.el.tfDelayChip.textContent = 'delay: ' + ms.toFixed(1) + ' ms · ' + (ms * 0.343).toFixed(2) + ' m';
+    },
+
+    saveTrace() {
+      if (this.updates < 2) return;
+      const names = ['A', 'B', 'C'];
+      this.traces.push({
+        name: names[this.traces.length % 3],
+        mag: Float64Array.from(this.magDb),
+        phase: Float64Array.from(this.phaseDeg),
+      });
+      if (this.traces.length > 3) this.traces.shift();
+      global.UI.setStatus('Traza ' + names[(this.traces.length - 1) % 3] + ' guardada — compara fuentes');
     },
 
     update() {
@@ -239,18 +274,41 @@
       }
       if (this.delaySamples == null) return;
 
+      /* detector de atasco: ref = canal 2 sin datos → fallback a generador */
+      if (this.refSource === 'ch2') {
+        if (this.refW === this._lastRefW) {
+          this._stall++;
+          if (this._stall > 8) {
+            this._stall = 0;
+            this.refSource = 'gen';
+            this.el.tfRef.value = 'gen';
+            if (this._unsubRef) this._unsubRef();
+            this._unsubRef = Gen.onRefBlock((b) => this._push(this.refFifo, b, 'ref'));
+            global.UI.setStatus('Canal 2 sin señal — referencia interna activada');
+          }
+        } else { this._stall = 0; this._lastRefW = this.refW; }
+      }
+
+      /* delay efectivo = auto + ajuste fino manual */
+      const effDelay = this.delaySamples + Math.round((+this.el.tfDelayMs.value / 1000) * AE.sampleRate);
+      const need = N + Math.abs(effDelay) + 4096;
+      if (this.micW < need || this.refW < need) return;
+
       const m = new Float64Array(N), r = new Float64Array(N);
       const Mi = new Float64Array(N), Ri = new Float64Array(N);
       /* mic termina en micW; ref correspondiente termina en refW − delay */
       this._segment(this.micFifo, this.micW, N, m);
-      this._segment(this.refFifo, this.refW - this.delaySamples, N, r);
+      this._segment(this.refFifo, this.refW - effDelay, N, r);
+      if (this.polarity) for (let i = 0; i < N; i++) m[i] = -m[i];
 
       const w = DSP.hannWindow(N);
-      const fft = new DSP.FFT(N);
+      if (!this._fft) this._fft = new DSP.FFT(N);
       for (let i = 0; i < N; i++) { m[i] *= w[i]; r[i] *= w[i]; }
-      fft.forward(m, Mi); fft.forward(r, Ri);
+      this._fft.forward(m, Mi); this._fft.forward(r, Ri);
 
       const alpha = 0.12;
+      const calFn = global.BA_STATE && global.BA_STATE.micCalDb;
+      const binHz = AE.sampleRate / N;
       for (let k = 0; k <= half; k++) {
         const Xr = r[k], Xi = Ri[k], Yr = m[k], Yi = Mi[k];
         const sxyR = (Yr * Xr + Yi * Xi);       // Y · conj(X)
@@ -263,9 +321,10 @@
         this.Syy[k] += alpha * (syy - this.Syy[k]);
 
         const sr2 = this.SxyRe[k], si2 = this.SxyIm[k];
-        /* H = Sxy/Sxx — cociente sin escala: FFT y ventana se cancelan */
+        /* H = Sxy/Sxx — cociente sin escala: FFT y ventana se cancelan.
+           Se suma la curva de calibración del micro (si está activa).    */
         const mag = Math.hypot(sr2, si2) / (this.Sxx[k] + 1e-20);
-        this.magDb[k] = DSP.dbFromAmp(mag);
+        this.magDb[k] = DSP.dbFromAmp(mag) + (calFn ? calFn(k * binHz) : 0);
         this.phaseDeg[k] = (Math.atan2(si2, sr2) * 180) / Math.PI;
         const num = sr2 * sr2 + si2 * si2;
         this.coher[k] = num / (this.Sxx[k] * this.Syy[k] + 1e-20);
@@ -316,57 +375,59 @@
       ctx.strokeStyle = 'rgba(45,212,191,0.25)';
       ctx.beginPath(); ctx.moveTo(padL, y0); ctx.lineTo(padL + plotW, y0); ctx.stroke();
 
-      if (this.updates < 2) return;
+      if (this.updates < 2 && !this.traces.length) return;
 
       const xOf = (f) => padL + (Math.log10(Math.max(f, fmin) / fmin) / Math.log10(fmax / fmin)) * plotW;
+      const yOfMag = (v) => padT + plotH * (1 - (DSP.clamp(v, -magRange, magRange) + magRange) / (2 * magRange));
+      const yOfPh = (v) => padT + plotH * (1 - (DSP.clamp(v, -180, 180) + 180) / 360);
+      const yOfCoh = (v) => padT + plotH - DSP.clamp(v, 0, 1) * plotH * 0.12;
+
+      const plotLine = (vals, yFn, color, lw, alpha) => {
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        let started = false;
+        for (let k = 2; k < nb; k++) {
+          const f = freqs[k];
+          if (f < fmin || f > fmax) continue;
+          const xx = xOf(f), yy = yFn(vals[k]);
+          if (!started) { ctx.moveTo(xx, yy); started = true; } else ctx.lineTo(xx, yy);
+        }
+        ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.stroke();
+        ctx.globalAlpha = 1;
+      };
+
+      /* trazas memorizadas A/B/C (comparar dos o más fuentes) */
+      const traceColors = ['#F5B04C', '#B794F6', '#F97066'];
+      for (let t = 0; t < this.traces.length; t++) {
+        const tr = this.traces[t];
+        if (view === 'both' || view === 'mag') plotLine(tr.mag, yOfMag, traceColors[t % 3], 1.2, 0.6);
+        if (view === 'both' || view === 'phase') plotLine(tr.phase, yOfPh, traceColors[t % 3], 1, 0.45);
+      }
+
+      if (this.updates < 2) { this._legend(ctx, padL, padT); return; }
 
       /* coherencia (sombra inferior) */
-      ctx.globalAlpha = 0.25;
-      ctx.beginPath();
-      let started = false;
-      for (let k = 2; k < nb; k++) {
-        const f = freqs[k];
-        if (f < fmin || f > fmax) continue;
-        const xx = xOf(f);
-        const yy = padT + plotH - DSP.clamp(coh[k], 0, 1) * plotH * 0.12;
-        if (!started) { ctx.moveTo(xx, yy); started = true; } else ctx.lineTo(xx, yy);
-      }
-      ctx.strokeStyle = '#8CA3A0'; ctx.lineWidth = 1; ctx.stroke();
-      ctx.globalAlpha = 1;
+      plotLine(coh, yOfCoh, '#8CA3A0', 1, 0.25);
 
-      /* magnitud */
-      if (view === 'both' || view === 'mag') {
-        ctx.beginPath();
-        started = false;
-        for (let k = 2; k < nb; k++) {
-          const f = freqs[k];
-          if (f < fmin || f > fmax) continue;
-          const xx = xOf(f);
-          const yy = padT + plotH * (1 - (DSP.clamp(mag[k], -magRange, magRange) + magRange) / (2 * magRange));
-          if (!started) { ctx.moveTo(xx, yy); started = true; } else ctx.lineTo(xx, yy);
-        }
-        ctx.strokeStyle = '#2DD4BF'; ctx.lineWidth = 1.6; ctx.stroke();
-      }
-      /* fase */
-      if (view === 'both' || view === 'phase') {
-        ctx.beginPath();
-        started = false;
-        for (let k = 2; k < nb; k++) {
-          const f = freqs[k];
-          if (f < fmin || f > fmax) continue;
-          const xx = xOf(f);
-          const ph = DSP.clamp(phase[k], -180, 180);
-          const yy = padT + plotH * (1 - (ph + 180) / 360);
-          if (!started) { ctx.moveTo(xx, yy); started = true; } else ctx.lineTo(xx, yy);
-        }
-        ctx.strokeStyle = 'rgba(245,176,76,0.85)'; ctx.lineWidth = 1.2; ctx.stroke();
-      }
+      /* magnitud en vivo */
+      if (view === 'both' || view === 'mag') plotLine(mag, yOfMag, '#2DD4BF', 1.6, 1);
+      /* fase en vivo */
+      if (view === 'both' || view === 'phase') plotLine(phase, yOfPh, 'rgba(245,176,76,0.85)', 1.2, 1);
 
-      /* leyenda */
+      this._legend(ctx, padL, padT);
+    },
+
+    _legend(ctx, padL, padT) {
       ctx.font = '11px Inter, sans-serif';
       ctx.fillStyle = '#2DD4BF'; ctx.fillText('— Magnitud (dB)', padL + 8, padT + 12);
       ctx.fillStyle = 'rgba(245,176,76,0.9)'; ctx.fillText('— Fase', padL + 120, padT + 12);
       ctx.fillStyle = '#8CA3A0'; ctx.fillText('▁ coherencia', padL + 180, padT + 12);
+      const traceColors = ['#F5B04C', '#B794F6', '#F97066'];
+      const names = ['A', 'B', 'C'];
+      for (let t = 0; t < this.traces.length; t++) {
+        ctx.fillStyle = traceColors[t % 3];
+        ctx.fillText('— traza ' + names[t], padL + 262 + t * 72, padT + 12);
+      }
     },
 
     tick(dtMs) {

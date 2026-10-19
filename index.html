@@ -165,17 +165,29 @@
       <article class="feat-card reveal">
         <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l3-9 4 18 3-9h7"/></svg></span>
         <h3>Espectrograma GPU</h3>
-        <p>Mapa de calor continuo hasta 192 kHz con paletas ajustables, detección instantánea de feedback, ruidos y resonancias de sala.</p>
+        <p>Mapa de calor continuo con <strong>escala completa de magnitud (dB) y frecuencia</strong>, barra de color calibrada, lectura con crosshair y detección instantánea de feedback y resonancias.</p>
       </article>
       <article class="feat-card reveal">
         <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg></span>
         <h3>Función de transferencia</h3>
-        <p>Magnitud, fase y coherencia con doble ventana FFT y MTW. Sincroniza la referencia con arrastre de delay automático.</p>
+        <p>Magnitud, fase y coherencia con delay automático, <strong>ajuste fino de tiempo y fase</strong> (delay ±20 ms y polaridad) y trazas memorizadas para <strong>comparar dos o más fuentes</strong>. Referencia interna sin cable o por loopback.</p>
       </article>
       <article class="feat-card reveal">
         <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
         <h3>Impulse Response + LIFFT</h3>
         <p>Captura el impulso, encuentra el delay del sistema y analiza reflexiones tempranas con la transformada inversa integrada.</p>
+      </article>
+      <article class="feat-card reveal feat-hot">
+        <span class="feat-flag">Nuevo</span>
+        <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>
+        <h3>Delay Finder entre fuentes</h3>
+        <p>Mide el <strong>tiempo de delay entre dos fuentes sonoras</strong> con un solo micrófono (secuencial A→B, ideal iPad) o con dos micros en vivo sobre una interfaz estéreo. Δt, distancia equivalente y recomendación de ajuste.</p>
+      </article>
+      <article class="feat-card reveal feat-hot">
+        <span class="feat-flag">Nuevo</span>
+        <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3"/></svg></span>
+        <h3>Calibración sin pistófono</h3>
+        <p>Carga el <strong>archivo de corrección de tu micrófono</strong> (.cal / .csv / .txt / .frd) del fabricante y BernAudio aplica la curva en vivo a SPL, RTA, espectrograma y transferencia. Sin pistófono y sin excusas.</p>
       </article>
       <article class="feat-card reveal feat-hot">
         <span class="feat-flag">Exclusivo</span>
@@ -366,10 +378,11 @@
         <p class="price-desc">Para empezar a medir hoy mismo, sin tarjeta.</p>
         <div class="price-amount"><span class="currency">$</span><span class="amount">0</span><span class="per" data-perp="para siempre" data-sub="para siempre">para siempre</span></div>
         <ul class="price-list">
-          <li>RTA 1/1 y 1/3 de octava + espectrograma</li>
-          <li>Función de transferencia (2 engines)</li>
-          <li>SPL con registro local</li>
-          <li>Generador de señal completo</li>
+          <li>RTA 1/1 y 1/3 de octava + espectrograma completo</li>
+          <li>Función de transferencia con tiempo y fase</li>
+          <li>Delay finder entre fuentes (1 o 2 micros)</li>
+          <li>Calibración por archivo .cal / .csv / .frd</li>
+          <li>SPL con registro local + generador de señal</li>
           <li>Windows · macOS · Linux · iPad</li>
         </ul>
         <a href="#descargar" class="btn btn-ghost btn-block">Descargar beta</a>
@@ -467,7 +480,7 @@
       </details>
       <details class="faq-item reveal">
         <summary>¿Necesito un micrófono calibrado y una interfaz especial?</summary>
-        <p>Para mediciones de referencia recomendamos un micrófono omnidireccional calibrado (tipo UMIK-1/UMIK-2 o equivalente con archivo de calibración) y una interfaz de 2 entradas. Cualquier interfaz con ASIO (Windows), Core Audio (macOS/iPad) o ALSA/PipeWire (Linux) funciona. BernAudio incluye el asistente de calibración de nivel y carga archivos .cal de tu micrófono.</p>
+        <p>Para mediciones de referencia recomendamos un micrófono omnidireccional calibrado (tipo UMIK-1/UMIK-2 o equivalente con archivo de calibración) y una interfaz de 2 entradas. Cualquier interfaz con ASIO (Windows), Core Audio (macOS/iPad) o ALSA/PipeWire (Linux) funciona. BernAudio carga el archivo de corrección (.cal/.csv/.frd) de tu micrófono y aplica la curva en vivo a todas las mediciones; para doble canal por cable, conecta el loopback a la entrada 2.</p>
       </details>
       <details class="faq-item reveal">
         <summary>¿Funciona sin conexión a internet?</summary>
@@ -490,7 +503,7 @@
   <div class="container cta-box reveal">
     <canvas id="ctaViz" aria-hidden="true"></canvas>
     <h2>Mide ahora mismo. <span class="grad">Sin instalar nada.</span></h2>
-    <p>Abre BernAudio Web en tu navegador: SPL, RTA de 1/3 de octava, espectrograma, función de transferencia, respuesta al impulso y generador de señales. Gratis.</p>
+    <p>Abre BernAudio Web en tu navegador: SPL, RTA de 1/3 de octava, espectrograma completo, delay finder entre fuentes, función de transferencia con ajuste de tiempo y fase, respuesta al impulso, calibración de micrófono por archivo y generador de señales. Gratis.</p>
     <div class="hero-cta cta-center">
       <a href="app.html" class="btn btn-primary btn-lg" aria-label="Lanzar BernAudio Web">Lanzar BernAudio Web</a>
       <a href="#demo" class="btn btn-ghost btn-lg">Ver la demo</a>

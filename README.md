@@ -18,20 +18,35 @@ requisito para acceder al micrófono). Sin registro, sin instalación.
 |--------|----------|
 | **SPL** | Nivel sonoro con ponderación A/C/Z, respuesta Fast/Slow, LAeq acumulado, Lmin/Lmax, pico, historial de 120 s y calibración por offset |
 | **RTA** | Analizador 1/1 y 1/3 de octava (ANSI base 2), ponderación A/C/Z, promediado 1–16, peak-hold (decaimiento o fijo) y hasta 4 curvas guardadas |
-| **Espectrograma** | Cascada en tiempo real con eje logarítmico, 4 colormaps, rango dinámico y techo ajustables |
-| **Función de transferencia** | Magnitud, fase y coherencia con referencia interna (ruido rosa) — sin cable de loopback: detección automática de delay por correlación cruzada, suavizado 1/6–1/12 oct |
+| **Espectrograma** | Cascada en tiempo real con eje logarítmico, escala completa de magnitud (barra de color dB) + crosshair de lectura (ratón/táctil), 4 colormaps, rango dinámico y techo ajustables |
+| **Función de transferencia** | Magnitud, fase y coherencia con referencia interna (ruido rosa) o **canal 2 por cable loopback** (modo pro 2 canales). Delay automático por correlación cruzada + **ajuste fino ±20 ms**, **inversión de polaridad**, suavizado 1/6–1/12 oct y **trazas A/B/C para comparar dos o más fuentes** |
+| **Delay Finder** | **Tiempo de delay entre dos fuentes sonoras**: modo 1 micro secuencial A→B (ideal iPad) o modo 2 micros en vivo (interfaz estéreo). Δt, Δdistancia, confianza y recomendación de a qué fuente añadir el delay |
 | **Impulso (IR)** | Medición por barrido logarítmico (método Farina) con deconvolución Wiener, delay en ms/metros, RT60 estimado (T20/Schroeder) y exportación WAV |
+| **Calibración** | **Carga el archivo de corrección del micrófono (.cal/.csv/.txt/.frd) sin pistófono**: curva aplicada en vivo a SPL, RTA, espectrograma y TF; persistente en el navegador y exportable a CSV |
 | **Generador** | Ruido rosa/blanco, seno variable, barrido log 3–20 s, nivel −60…0 dB y monitor de salida |
 
 **Motor DSP propio** (`js/app/dsp.js`): FFT radix-2 validada contra DFT directa,
 ponderaciones IEC 61672 (A/C), bandas de octava base-2, ventanas Hann/Blackman-Harris,
-deconvolución regularizada y RT60 por integración inversa de Schroeder.
+deconvolución regularizada, RT60 por integración inversa de Schroeder, correlación
+cruzada FFT con signo verificado (delay finder/TF) e interpolación logarítmica de
+curvas de calibración. 40 tests unitarios en Node (`scripts/test-dsp.js`).
+
+## 🖥️📱 Plataformas
+
+- **Computador (modo Pro con hardware)** — Windows/macOS/Linux (Chrome, Edge, Firefox):
+  interfaz de audio USB 2×2, `Canales = 2`, y para TF de doble canal clásica un cable de
+  **loopback** de la salida a la entrada 2 con `Referencia = Canal 2`. Dos micros de medición
+  → Delay Finder en vivo entre fuentes.
+- **iPad** — Safari (iPadOS 15+) o Chrome iOS: micrófono interno del iPad o micrófono
+  externo / interfaz USB-C·Lightning clase compatible (se selecciona en `Entrada`).
+  Toda la suite funciona igual; el Delay Finder secuencial 1 micro es ideal para iPad.
 
 > ⚠️ **Nota de precisión**: el navegador aplica procesado al micrófono que BernAudio
 > desactiva (`echoCancellation:false, noiseSuppression:false, autoGainControl:false`),
 > pero la cadena de audio del sistema no es de grado instrumento. Para lectura SPL
-> absoluta, calibra con un calibrador acústico (el offset se guarda en tu navegador).
-> Para alineación relativa (delay, fase, EQ) funciona de maravilla.
+> absoluta, carga la curva de calibración de tu micrófono y ajusta el offset con un
+> calibrador acústico (todo se guarda en tu navegador). Para alineación relativa
+> (delay, fase, EQ) funciona de maravilla.
 
 ## ✨ Características de la plataforma
 
@@ -58,11 +73,13 @@ bernaudio/
 ├── js/
 │   ├── main.js         # Motores de visualización canvas (landing)
 │   └── app/
-│       ├── dsp.js          # Motor DSP (FFT, ponderaciones, bandas, IR, RT60)
-│       ├── audio-engine.js # AudioContext, micrófono, taps de bloques
-│       ├── modules-spl.js  # SPL · RTA · Espectrograma
-│       ├── modules-tf.js   # Generador · Transferencia · Impulso
-│       └── ui.js           # Pestañas, calibración, arranque
+│       ├── dsp.js          # Motor DSP (FFT, ponderaciones, bandas, IR, RT60, xcorr, cal)
+│       ├── audio-engine.js # AudioContext, micrófono 1/2 canales, taps de bloques
+│       ├── modules-spl.js  # SPL · RTA · Espectrograma (con cal de micro aplicada)
+│       ├── modules-tf.js   # Generador · Transferencia (trazas/loopback) · Impulso
+│       ├── modules-delay.js# Delay Finder (1 micro secuencial / 2 micros en vivo)
+│       ├── modules-cal.js  # Calibración de micrófono por archivo
+│       └── ui.js           # Pestañas, calibración, canales, arranque
 ├── assets/
 │   ├── logo.svg        # Logotipo horizontal
 │   ├── favicon.svg     # Ícono del sitio
