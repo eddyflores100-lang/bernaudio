@@ -22,7 +22,12 @@
       <p>Suite de medición acústica en tiempo real: SPL, RTA, espectrograma,
       delay finder entre fuentes, función de transferencia (tiempo y fase),
       respuesta al impulso, calibración de micrófono por archivo y generador de señales.</p>
-      <button class="btn btn-primary btn-lg" id="btnStart">🎙️ Iniciar medición</button>
+      <div class="start-btns">
+        <button class="btn btn-primary btn-lg" id="btnStart">🎙️ Iniciar medición</button>
+        <button class="btn btn-ghost btn-lg" id="btnGenOnly">🎛️ Solo generador</button>
+      </div>
+      <p class="hint" style="margin-top:10px"><b>🎙️ Micrófono</b> = BernAudio solo escucha, no emite señal.<br>
+      <b>🎛️ Generador</b> = tú inicias la señal (rosa/sweep/seno) y los altavoces la reproducen para medir.</p>
       <div class="error-box" id="startError"></div>
       <p class="hint">Usa auriculares o controla el volumen para evitar acoples.<br>
       <b>Consejo:</b> desactiva mejoras de sonido del sistema para medir con precisión.</p>
@@ -94,6 +99,7 @@
           <select id="splSpeed"><option value="fast">Fast (125 ms)</option><option value="slow">Slow (1 s)</option></select>
         </div>
         <div class="ctl"><button class="btn btn-sm" id="splReset">Reiniciar Leq/min/max</button></div>
+        <div class="ctl"><button class="btn btn-sm" id="splExport" title="Descarga el historial de niveles y el resumen Leq/Lmax/Lmin/Peak en CSV">⭳ Exportar CSV</button></div>
       </div>
       <div class="readouts">
         <div class="ro big"><div class="v" id="splNow">--</div><div class="l" id="splNowL">dBA · Fast</div></div>
@@ -228,6 +234,10 @@
         <div class="ro"><div class="v" id="irDelay">--</div><div class="l">Delay (ms)</div></div>
         <div class="ro"><div class="v" id="irDist">--</div><div class="l">Distancia (m)</div></div>
         <div class="ro"><div class="v" id="irRt60">--</div><div class="l" id="irRt60L">RT60 estimado</div></div>
+        <div class="ro"><div class="v" id="irEdt">--</div><div class="l">EDT (s)</div></div>
+        <div class="ro"><div class="v" id="irT30">--</div><div class="l">T30 (s)</div></div>
+        <div class="ro"><div class="v" id="irC50">--</div><div class="l">C50 (dB)</div></div>
+        <div class="ro"><div class="v" id="irC80">--</div><div class="l">C80 (dB)</div></div>
         <div class="ro"><div class="v" id="irPeakLvl">--</div><div class="l">Nivel pico (dBFS)</div></div>
       </div>
       <div class="panel"><div class="panel-title">Respuesta al impulso (dB)</div><canvas id="cvIr"></canvas></div>
@@ -294,6 +304,16 @@
     <!-- ── Ayuda / Plataformas ── -->
     <section class="module" id="mod-help">
       <div class="help-grid">
+        <div class="help-card">
+          <h4>▶ ¿Qué señal se envía y cuándo?</h4>
+          <ul>
+            <li><b>Con micrófono (medición pasiva):</b> BernAudio <b>no emite nada</b>. Solo escucha: SPL, RTA y espectrograma del ambiente o del programa que ya suena.</li>
+            <li><b>Generador:</b> tú lo inicias (rosa, blanco, seno o barrido) y son tus altavoces los que emiten; el micrófono mide lo que llega. Es un lazo <b>acústico</b> (señal por el aire).</li>
+            <li><b>Transferencia / IR:</b> al pulsar «Medir con ruido rosa» o «Medir IR», BernAudio arranca el generador interno solo; la referencia es la señal generada (sin cable) y el delay del sistema se compensa por correlación.</li>
+            <li><b>Modo pro 2 canales (loopback):</b> la referencia va <b>por cable</b> al canal 2 del interface (método Smaart): mides únicamente el equipo bajo test, sin depender de la sala.</li>
+            <li><b>Delay Finder:</b> modo 1 micro (secuencial A→B con referencia interna) o 2 micros en vivo.</li>
+          </ul>
+        </div>
         <div class="help-card">
           <h4>🖥️ Computador — modo Pro con hardware</h4>
           <ul>

@@ -490,7 +490,7 @@
 
     init() {
       ['irMeasure', 'irDur', 'irExport', 'irStatusChip', 'irProgress',
-       'irDelay', 'irDist', 'irRt60', 'irRt60L', 'irPeakLvl', 'cvIr']
+       'irDelay', 'irDist', 'irRt60', 'irRt60L', 'irEdt', 'irT30', 'irC50', 'irC80', 'irPeakLvl', 'cvIr']
         .forEach((id) => (this.el[id] = document.getElementById(id)));
       this.el.irMeasure.addEventListener('click', () => this.measure());
       this.el.irExport.addEventListener('click', () => this.exportWav());
@@ -557,6 +557,11 @@
           this.el.irDist.textContent = (delayMs * 0.343).toFixed(2);
           this.el.irRt60.textContent = rt.rt60 ? rt.rt60.toFixed(2) : '--';
           this.el.irRt60L.textContent = 'RT60 (' + rt.detail + ')';
+          this.el.irEdt.textContent = rt.edt != null ? rt.edt.toFixed(2) : '--';
+          this.el.irT30.textContent = rt.t30 != null ? rt.t30.toFixed(2) : '--';
+          const cc = DSP.clarityC(ir, this.sr, pk.idx);
+          this.el.irC50.textContent = cc.c50 != null ? cc.c50.toFixed(1) : '--';
+          this.el.irC80.textContent = cc.c80 != null ? cc.c80.toFixed(1) : '--';
           this.el.irPeakLvl.textContent = DSP.dbFromAmp(pk.val).toFixed(1);
           this.el.irStatusChip.textContent = 'listo ✓';
           this.el.irProgress.style.display = 'none';

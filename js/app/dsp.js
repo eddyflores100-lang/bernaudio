@@ -288,8 +288,7 @@
     return { idx, val };
   }
 
-  /* ── RT60 por integración inversa de Schroeder (T20) ───────
-     ir, sr → { rt60: s|null, detail: 'T20'|'T30'|'--', decayDb } */
+  /* ── RT60 por Schroeder + EDT/T30 (ISO 3382) ─────────────── */
   function schroederRT60(ir, sr, peakIdx) {
     const start = clamp((peakIdx | 0) + Math.round(0.01 * sr), 0, ir.length - 1);
     // energía acumulada hacia atrás
@@ -299,14 +298,42 @@
       acc += ir[start + i] * ir[start + i];
       E[i] = acc;
     }
-    if (E[0] <= 0) return { rt60: null, detail: '--', decayDb: 0 };
+    if (E[0] <= 0) return { rt60: null, detail: '--', decayDb: 0, edt: null, t20: null, t30: null, curveDb: null };
     const dB = new Float64Array(E.length);
     for (let i = 0; i < E.length; i++) dB[i] = 10 * Math.log10(E[i] / E[0]);
     const t5 = findCross(dB, -5);
+    const t10 = findCross(dB, -10);
     const t25 = findCross(dB, -25);
-    if (t5 == null || t25 == null || t25 <= t5) return { rt60: null, detail: '--', decayDb: -dB[dB.length - 1] };
+    const t35 = findCross(dB, -35);
+    /* EDT (ISO 3382): 0..−10 dB extrapolado ×6; la curva empieza en pico+10 ms,
+       por eso se suma ese offset al cruce */
+    const edt = t10 != null ? (6 * (t10 + (start - (peakIdx | 0)))) / sr : null;
+    const t20 = t5 != null && t25 != null && t25 > t5 ? 3 * ((t25 - t5) / sr) : null;
+    const t30 = t5 != null && t35 != null && t35 > t5 ? 2 * ((t35 - t5) / sr) : null;
+    if (t5 == null || t25 == null || t25 <= t5) {
+      return { rt60: null, detail: '--', decayDb: -dB[dB.length - 1], edt, t20: null, t30, curveDb: dB };
+    }
     const rt60 = 3 * ((t25 - t5) / sr);
-    return { rt60, detail: 'T20', decayDb: -dB[dB.length - 1] };
+    return { rt60, detail: 'T20', decayDb: -dB[dB.length - 1], edt, t20, t30, curveDb: dB };
+  }
+  /* Claridad C50 / C80 (ISO 3382): 10·log10(∫0..T / ∫T..∞) desde la llegada
+     del directo (pico de la IR). tSplit en ms. Devuelve { c50, c80 }. */
+  function clarityC(ir, sr, peakIdx) {
+    const t0 = clamp((peakIdx | 0), 0, ir.length - 1);
+    const n50 = Math.round(0.05 * sr), n80 = Math.round(0.08 * sr);
+    let e50 = 0, e80 = 0, eTot = 0;
+    const end = Math.min(ir.length, t0 + Math.round(1.0 * sr)); // ventana 1 s
+    for (let i = t0; i < end; i++) {
+      const e = ir[i] * ir[i];
+      const rel = i - t0;
+      if (rel < n50) e50 += e;
+      if (rel < n80) e80 += e;
+      eTot += e;
+    }
+    if (eTot <= 0) return { c50: null, c80: null };
+    const c50 = e50 > 0 && eTot > e50 ? 10 * Math.log10(e50 / (eTot - e50)) : null;
+    const c80 = e80 > 0 && eTot > e80 ? 10 * Math.log10(e80 / (eTot - e80)) : null;
+    return { c50, c80 };
   }
   function findCross(dB, level) {
     for (let i = 1; i < dB.length; i++) {
@@ -467,7 +494,7 @@
     aWeightDb, cWeightDb, octaveBands, octFloor, fftSpectrumDb, bandLabel, bandLevels,
     dbFromPower, dbFromAmp, powerFromDb, ampFromDb, clamp, nextPow2,
     makeWhiteNoise, makePinkNoise, makeSweep,
-    deconvolveIR, findPeak, schroederRT60, encodeWav, fracOctSmooth, colormap,
+    deconvolveIR, findPeak, schroederRT60, clarityC, encodeWav, fracOctSmooth, colormap,
     xcorrPeak, parseCalFile, interpLogDb,
   };
 

@@ -103,7 +103,17 @@
       this.ctx = new (global.AudioContext || global.webkitAudioContext)({
         latencyHint: 'interactive',
       });
-      if (this.ctx.state === 'suspended') await this.ctx.resume();
+      /* resume() puede quedar pendiente sin gesto de usuario (autoplay policy):
+         no bloqueamos el arranque — el navegador reanuda el contexto en el
+         próximo clic al iniciar el generador */
+      if (this.ctx.state === 'suspended') {
+        try {
+          await Promise.race([
+            this.ctx.resume(),
+            new Promise((r) => setTimeout(r, 1500)),
+          ]);
+        } catch (e) { console.warn('[AE] ctx.resume pendiente de gesto:', e && e.message); }
+      }
       this.sampleRate = this.ctx.sampleRate;
       this.noMic = true;
       this.realChannels = 0;

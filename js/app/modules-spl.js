@@ -51,21 +51,45 @@
   const SPL = {
     hist: [], histMax: 240, // 2 muestras/s × 120 s
     msFast: null, msSlow: null, leqPower: null, leqN: 0,
-    lMin: Infinity, lMax: -Infinity,
+    lMin: Infinity, lMax: -Infinity, peakZMax: -Infinity,
     lastHistT: 0,
 
     el: {},
     init() {
-      ['splNow', 'splNowL', 'splLeq', 'splMax', 'splMin', 'splPeak', 'splWeight', 'splSpeed', 'splReset', 'cvSplHist']
+      ['splNow', 'splNowL', 'splLeq', 'splMax', 'splMin', 'splPeak', 'splWeight', 'splSpeed', 'splReset', 'splExport', 'cvSplHist']
         .forEach((id) => (this.el[id] = document.getElementById(id)));
       // etiqueta real del Peak (Z, dominio tiempo)
       const lbl = this.el.splPeak.parentElement.querySelector('.l');
       if (lbl) lbl.textContent = 'Peak (Z)';
       this.el.splReset.addEventListener('click', () => this.reset());
+      this.el.splExport.addEventListener('click', () => this.exportCsv());
     },
     reset() {
       this.msFast = this.msSlow = this.leqPower = null;
-      this.leqN = 0; this.lMin = Infinity; this.lMax = -Infinity; this.hist = [];
+      this.leqN = 0; this.lMin = Infinity; this.lMax = -Infinity; this.peakZMax = -Infinity; this.hist = [];
+    },
+    /* Exportación CSV del registro de niveles (paridad Smaart SPL log):
+       resumen Leq/Lmax/Lmin/Peak + serie temporal a 2 Hz */
+    exportCsv() {
+      const wSel = this.el.splWeight.value;
+      const spd = this.el.splSpeed.value === 'slow' ? 'Slow' : 'Fast';
+      const f = (v, d) => (isFinite(v) ? v.toFixed(d == null ? 1 : d) : '--');
+      const rows = [];
+      rows.push('# BernAudio - Registro SPL (Alicelabs LLC)');
+      rows.push('# fecha,' + new Date().toISOString());
+      rows.push('# ponderacion,' + wSel + ' · velocidad,' + spd + ' · cal dBFS->dB SPL,' + global.BA_STATE.cal);
+      rows.push('# LAeq,' + f(this.leqN ? DSP.dbFromPower(this.leqPower / this.leqN) : NaN, 2));
+      rows.push('# Lmax,' + f(this.lMax, 2) + ',Lmin,' + f(this.lMin, 2) + ',PeakZ,' + f(this.peakZMax, 2));
+      rows.push('t_s,nivel_dB' + wSel);
+      for (let i = 0; i < this.hist.length; i++) rows.push((i * 0.5).toFixed(1) + ',' + (isFinite(this.hist[i]) ? this.hist[i].toFixed(2) : ''));
+      if (!this.hist.length) rows.push('0.0,(sin datos — el registro se llena mientras el módulo SPL está activo)');
+      const blob = new Blob(['\uFEFF' + rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'bernaudio_spl_' + Date.now() + '.csv';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      global.UI.setStatus('SPL exportado a CSV (' + this.hist.length + ' muestras)');
     },
     /* Potencia total ponderada desde freqDb (dB/bin) */
     totalPower(weightDb) {
@@ -102,6 +126,7 @@
 
       /* Peak dominio tiempo (Z) */
       const pk = DSP.dbFromAmp(AE.peak()) + global.BA_STATE.cal;
+      if (isFinite(pk)) this.peakZMax = Math.max(this.peakZMax, pk);
 
       /* Readouts */
       const set = (id, v) => { this.el[id].textContent = isFinite(v) ? v.toFixed(1) : '--'; };

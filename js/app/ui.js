@@ -50,6 +50,8 @@
 
       /* overlay */
       document.getElementById('btnStart').addEventListener('click', () => this.boot(false));
+      const genOnly = document.getElementById('btnGenOnly');
+      if (genOnly) genOnly.addEventListener('click', () => this.startNoMic());
       const errBox = document.getElementById('startError');
 
       /* botón alternativo (sin micrófono) se crea bajo demanda */
@@ -139,17 +141,21 @@
             : 'No se pudo acceder al micrófono: ' + (err && err.message ? err.message : err)) +
           '<br><br><button class="btn btn-sm btn-amber" id="btnNoMic">Continuar sin micrófono (solo generador)</button>';
         const b = document.getElementById('btnNoMic');
-        if (b) b.addEventListener('click', async () => {
-          const sr = await AE.startCtxOnly();
-          this.started = true;
-          this._setOverlay(false);
-          document.getElementById('stSr').textContent = (sr / 1000).toFixed(1) + ' kHz';
-          document.getElementById('stCh').textContent = '0 ch';
-          document.getElementById('stDot').classList.add('on');
-          document.getElementById('stText').textContent = 'sin micrófono';
-          this.setStatus('sin micrófono — solo generador');
-        });
+        if (b) b.addEventListener('click', () => this.startNoMic());
       }
+    },
+
+    /* Arranque sin micrófono: solo contexto + generador (no se escucha ni se emite
+       nada hasta que el usuario inicia el generador en su pestaña) */
+    async startNoMic() {
+      const sr = await AE.startCtxOnly();
+      this.started = true;
+      this._setOverlay(false);
+      document.getElementById('stSr').textContent = (sr / 1000).toFixed(1) + ' kHz';
+      document.getElementById('stCh').textContent = '0 ch';
+      document.getElementById('stDot').classList.add('on');
+      document.getElementById('stText').textContent = 'sin micrófono';
+      this.setStatus('sin micrófono — solo generador');
     },
 
     async reboot() {
