@@ -112,6 +112,17 @@ bernaudio/
 └── README.md
 ```
 
+## 🌍 Dominio propio
+
+El sitio se sirve bajo el dominio personalizado **[https://bernaudio.utalabs.tech](https://bernaudio.utalabs.tech)** (además de `https://eddyflores100-lang.github.io/bernaudio/`, que redirige al dominio propio).
+
+- El archivo **`CNAME`** en la raíz del repo declara el dominio: `bernaudio.utalabs.tech`.
+- La configuración de **Settings → Pages → Custom domain** del repositorio apunta a ese dominio.
+- En el proveedor DNS de `utalabs.tech`, el subdominio se declara con un registro **CNAME**:
+  `bernaudio CNAME eddyflores100-lang.github.io.`
+  (alternativa: registros A a las IPs de GitHub Pages `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`).
+- HTTPS queda activado con el certificado automático de Let's Encrypt que GitHub Pages emite tras propagar el DNS.
+
 ## ⚖️ Documentación legal
 
 - **[Política de privacidad](privacy.html)** (DOC. BA-PRV-01): procesamiento 100 % local del audio, sin telemetría, sin cookies de seguimiento, sin recopilación de datos personales. `localStorage` solo guarda preferencias (calibración del micrófono, ajustes) en tu dispositivo.
