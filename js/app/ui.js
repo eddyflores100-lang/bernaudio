@@ -24,6 +24,10 @@
     },
   };
   global.BA_STATE = BA_STATE;
+  /* Binding estable: los módulos extraen micCalDb como función suelta
+     (const calFn = BA_STATE.micCalDb) y en strict mode la llamada sin
+     bind perdería `this` → TypeError. Se ata una sola vez aquí. */
+  BA_STATE.micCalDb = BA_STATE.micCalDb.bind(BA_STATE);
 
   const MODULES = {
     spl: global.MOD_SPL,

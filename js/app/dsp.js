@@ -115,14 +115,22 @@
   }
 
   /* ── Bandas de octava (base 2, ANSI) ─────────────────────── */
-  /* nPerOct: 1 o 3 → devuelve [{fc, lo, hi}] */
+  /* nPerOct: 1, 3 o resoluciones finas (6/12/24/48) → devuelve [{fc, lo, hi}] */
   function octaveBands(nPerOct, fMin, fMax) {
     const centers = [];
-    const base = [31.25, 25, 31.5]; // fc inicial para 1/1 y 1/3 (nominal 31.5)
-    const start = nPerOct === 3 ? 20 : 31.5;
-    // generar centros exactos base-2 desde 20 Hz hacia arriba
-    let fc = start;
     const ratio = Math.pow(2, 1 / nPerOct);
+    let fc;
+    if (nPerOct >= 6) {
+      /* resoluciones finas: malla base-2 anclada a 1000 Hz exactos,
+         fc(j) = 1000·2^((j − 10·n)/n) → los centros nominales ANSI
+         (31.25, 62.5, 125 … 1000 … 16k) caen sobre bandas exactas */
+      const J = 10 * nPerOct;
+      const jMin = Math.ceil(J + nPerOct * Math.log2(fMin / 1000));
+      fc = 1000 * Math.pow(2, (jMin - J) / nPerOct);
+    } else {
+      // fc inicial para 1/1 y 1/3 (nominal 31.5); 1/3 parte de 20 Hz
+      fc = nPerOct === 3 ? 20 : 31.5;
+    }
     while (fc <= fMax * Math.pow(2, 1 / (2 * nPerOct))) {
       centers.push(fc);
       fc *= ratio;
@@ -134,6 +142,37 @@
         hi: c * Math.pow(2, 1 / (2 * nPerOct)),
       }))
       .filter((b) => b.hi >= fMin);
+  }
+
+  /* Frecuencia mínima con resolución suficiente para n bandas/octava:
+     la banda en fc debe contener al menos 1 bin FFT
+     (fc·(2^(1/n)−1) ≥ binHz). Por debajo, el RTA muestra la banda vacía. */
+  function octFloor(nPerOct, binHz) {
+    return binHz / (Math.pow(2, 1 / nPerOct) - 1);
+  }
+
+  /* Espectro en dB desde muestras de tiempo (motor FFT extendido).
+     samples: Float32/Float64Array de longitud fft.n; win: ventana (misma longitud);
+     re/im: Float64Array(fft.n) de trabajo; out: Float64Array(fft.n/2+1) resultado.
+     Convención tipo AnalyserNode: 20·log10(|X_k| / (N·CG)) → una senoidal a
+     escala completa en el centro de bin ≈ −6 dB (A=1 → |X|/(N·CG)=0.5).
+     Un offset constante entre motores se absorbe con el Cal del topbar. */
+  function fftSpectrumDb(samples, fft, win, re, im, out) {
+    const N = fft.n;
+    for (let i = 0; i < N; i++) {
+      re[i] = samples[i] * win[i];
+      im[i] = 0;
+    }
+    fft.forward(re, im);
+    let s = 0;
+    for (let i = 0; i < N; i++) s += win[i];
+    const cg = s / N || 1;
+    const half = N >> 1;
+    for (let k = 0; k <= half; k++) {
+      const mag = Math.sqrt(re[k] * re[k] + im[k] * im[k]) / (N * cg);
+      out[k] = 20 * Math.log10(mag + 1e-300);
+    }
+    return out;
   }
 
   /* Etiquetas nominales ANSI */
@@ -425,7 +464,7 @@
   /* ── Export ──────────────────────────────────────────────── */
   const DSP = {
     FFT, hannWindow, blackmanHarris, windowPowerGain,
-    aWeightDb, cWeightDb, octaveBands, bandLabel, bandLevels,
+    aWeightDb, cWeightDb, octaveBands, octFloor, fftSpectrumDb, bandLabel, bandLevels,
     dbFromPower, dbFromAmp, powerFromDb, ampFromDb, clamp, nextPow2,
     makeWhiteNoise, makePinkNoise, makeSweep,
     deconvolveIR, findPeak, schroederRT60, encodeWav, fracOctSmooth, colormap,

@@ -142,28 +142,51 @@
         const yy = BAU.yToPx(v, yMin, yMax, h - 18);
         i === 0 ? ctx.moveTo(px(i + (this.histMax - n)), yy) : ctx.lineTo(px(i + (this.histMax - n)), yy);
       }
-      ctx.strokeStyle = '#FFA23E'; ctx.lineWidth = 1.6; ctx.stroke();
+      ctx.strokeStyle = '#2DD4BF'; ctx.lineWidth = 1.6; ctx.stroke();
       ctx.lineTo(px(this.histMax), h - 18); ctx.lineTo(px(this.histMax - n), h - 18); ctx.closePath();
-      ctx.fillStyle = 'rgba(255,162,62,0.12)'; ctx.fill();
+      ctx.fillStyle = 'rgba(45,212,191,0.12)'; ctx.fill();
     },
   };
 
   /* ════════════════ MÓDULO RTA ════════════════ */
   const RTA = {
     bands: [], disp: null, peaks: null, peakMode: 'decay',
-    curves: [], curveColors: ['#FFA23E', '#F5B04C', '#F97066', '#B794F6'],
+    curves: [], curveColors: ['#2DD4BF', '#F5B04C', '#F97066', '#B794F6'],
     avgN: 8,
+    /* motor FFT: 'analyser' usa el AnalyserNode del topbar;
+       65536/131072/262144 activan el motor extendido (Turbo) con
+       FFT propia sobre un anillo de bloques crudos del micrófono. */
+    engine: 'analyser',
+    ring: null, ringPos: 0, ringSR: 0,
+    turbo: null,
+    _unsub: null, _feedFn: null, _floor: 0,
+    NOMINALS: [31.25, 62.5, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
 
     el: {},
     init() {
-      ['rtaRes', 'rtaWeight', 'rtaAvg', 'rtaPeak', 'rtaSaveCurve', 'rtaClearCurves', 'cvRta']
+      ['rtaRes', 'rtaMotor', 'rtaWeight', 'rtaAvg', 'rtaPeak', 'rtaSaveCurve', 'rtaClearCurves', 'cvRta']
         .forEach((id) => (this.el[id] = document.getElementById(id)));
       this.el.rtaRes.addEventListener('change', () => this.rebuild());
+      this.el.rtaMotor.addEventListener('change', () => this.rebuild());
       this.el.rtaAvg.addEventListener('change', () => { this.avgN = +this.el.rtaAvg.value; });
       this.el.rtaPeak.addEventListener('change', () => { this.peakMode = this.el.rtaPeak.value; this.peaks = null; });
       this.el.rtaSaveCurve.addEventListener('click', () => this.saveCurve());
       this.el.rtaClearCurves.addEventListener('click', () => { this.curves = []; });
       this.rebuild();
+    },
+    /* Motor FFT requerido para la resolución elegida.
+       'analyser' = AnalyserNode (hasta 32K, tope del estándar web);
+       Turbo N = FFT propia sobre N muestras acumuladas. En Auto se
+       elige el motor más pequeño con piso de validez ≤ 25 Hz
+       (así 1/1–1/3 siguen en el Analyser y solo las finas escalan). */
+    resolveEngine() {
+      const n = +this.el.rtaRes.value;
+      const sel = this.el.rtaMotor.value;
+      if (sel !== 'auto') return sel === 'analyser' ? 'analyser' : +sel;
+      const need = (N) => DSP.octFloor(n, AE.sampleRate / N) <= 25;
+      if (need(Math.min(32768, Math.max(2048, AE.fftSize)))) return 'analyser';
+      for (const N of [65536, 131072, 262144]) if (need(N)) return N;
+      return 262144;
     },
     rebuild() {
       const nPerOct = +this.el.rtaRes.value;
@@ -171,6 +194,48 @@
       this.bands = DSP.octaveBands(nPerOct, 20, fmax);
       this.disp = new Float64Array(this.bands.length);
       this.peaks = new Float64Array(this.bands.length).fill(-Infinity);
+      this.engine = this.resolveEngine();
+      if (this.engine === 'analyser') {
+        this.turbo = null;
+      } else {
+        const N = this.engine;
+        if (!this.turbo || this.turbo.N !== N) {
+          this.turbo = {
+            N, fft: new DSP.FFT(N), win: DSP.hannWindow(N),
+            buf: new Float64Array(N), re: new Float64Array(N), im: new Float64Array(N),
+            out: new Float64Array(N / 2 + 1), lastMs: 0,
+          };
+        }
+      }
+      this.ring = null; this.ringPos = 0; this.ringSR = 0;
+      this._floor = 0;
+    },
+    _ensureRing() {
+      const N = this.engine;
+      if (!this.ring || this.ring.length !== N || this.ringSR !== AE.sampleRate) {
+        this.ring = new Float32Array(N);
+        this.ringPos = 0;
+        this.ringSR = AE.sampleRate;
+      }
+    },
+    _feed(b0) {
+      try {
+        if (this.engine === 'analyser') return;
+        this._ensureRing();
+        const N = this.ring.length;
+        for (let i = 0; i < b0.length; i++) {
+          this.ring[this.ringPos] = b0[i];
+          this.ringPos = (this.ringPos + 1) % N;
+        }
+      } catch (err) { console.error('[rta ring]', err); }
+    },
+    _ensureSub() {
+      const alive = this._unsub && this._feedFn && AE._blockSubs.indexOf(this._feedFn) !== -1;
+      if (!alive) {
+        if (this._unsub) { this._unsub(); this._unsub = null; }
+        this._feedFn = (b) => this._feed(b);
+        this._unsub = AE.onBlock(this._feedFn);
+      }
     },
     onFftChange() { this.rebuild(); },
     saveCurve() {
@@ -179,16 +244,45 @@
       if (this.curves.length > 4) this.curves.shift();
     },
     tick(dtMs) {
-      if (!AE.poll()) return;
+      if (!AE.poll()) {
+        if (this._unsub && !AE.running) { this._unsub(); this._unsub = null; this._feedFn = null; }
+        return;
+      }
+      if (this.engine !== 'analyser') this._ensureSub();
       const cal = global.BA_STATE.cal;
       const wSel = this.el.rtaWeight.value;
-      const binHz = AE.sampleRate / AE.fftSize;
       const wf = wSel === 'A' ? DSP.aWeightDb : wSel === 'C' ? DSP.cWeightDb : null;
 
-      const lv = DSP.bandLevels(AE.freqDb, binHz, this.bands, cal, wf);
+      /* fuente del espectro según motor */
+      let freqDb, binHz;
+      if (this.engine === 'analyser') {
+        freqDb = AE.freqDb;
+        binHz = AE.sampleRate / AE.fftSize;
+      } else {
+        const t = this.turbo;
+        this._ensureRing();
+        const now = performance.now();
+        const interval = t.N >= 262144 ? 250 : 100; // ms entre FFT largas
+        if (!t.lastMs || now - t.lastMs >= interval) {
+          t.lastMs = now;
+          const N = t.N, r = this.ring, pos = this.ringPos;
+          for (let i = 0; i < N; i++) t.buf[i] = r[(pos + i) % N];
+          DSP.fftSpectrumDb(t.buf, t.fft, t.win, t.re, t.im, t.out);
+        }
+        freqDb = t.out;
+        binHz = AE.sampleRate / t.N;
+      }
+
+      const lv = DSP.bandLevels(freqDb, binHz, this.bands, cal, wf);
+      /* piso de validez: sin bins suficientes la banda se muestra vacía */
+      const floor = DSP.octFloor(+this.el.rtaRes.value, binHz);
+      this._floor = floor;
       /* curva de calibración del micro aplicada al centro de cada banda */
       const calFn = global.BA_STATE.micCalDb;
-      if (calFn) for (let i = 0; i < lv.length; i++) lv[i] += calFn(this.bands[i].fc);
+      for (let i = 0; i < lv.length; i++) {
+        if (this.bands[i].fc < floor) { lv[i] = NaN; continue; }
+        if (calFn) lv[i] += calFn(this.bands[i].fc);
+      }
       const alpha = 1 / this.avgN;
       for (let i = 0; i < lv.length; i++) {
         const p = isFinite(lv[i]) ? Math.pow(10, lv[i] / 10) : 0;
@@ -217,6 +311,28 @@
         ctx.fillText(y.toFixed(0), 4, yy + 3);
       }
 
+      const nPer = +this.el.rtaRes.value;
+      /* líneas verticales en centros nominales ANSI (resoluciones finas) */
+      if (nPer >= 12) {
+        const f0 = this.bands.length ? this.bands[0].fc : 20;
+        const f1 = this.bands.length ? this.bands[this.bands.length - 1].fc : 20000;
+        ctx.strokeStyle = 'rgba(245,176,76,0.10)';
+        for (const nm of this.NOMINALS) {
+          if (nm < f0 || nm > f1) continue;
+          const xx = padL + gw * (Math.log2(nm / f0) / Math.log2(f1 / f0));
+          ctx.beginPath(); ctx.moveTo(xx, 8); ctx.lineTo(xx, 8 + gh); ctx.stroke();
+        }
+      }
+      /* estado del motor FFT */
+      if (nPer >= 6 || this.engine !== 'analyser') {
+        const engTxt = this.engine === 'analyser'
+          ? 'Analyser ' + AE.fftSize
+          : 'Turbo ' + Math.round(this.engine / 1024) + 'K';
+        const st = '1/' + nPer + ' oct · ' + engTxt + ' · válido ≥ ' + Math.ceil(this._floor || 0) + ' Hz';
+        ctx.fillStyle = 'rgba(245,176,76,0.85)';
+        ctx.fillText(st, padL + 4, 14);
+      }
+
       const n = this.bands.length, slot = gw / n;
       /* curvas guardadas */
       for (let c = 0; c < this.curves.length; c++) {
@@ -242,7 +358,7 @@
         const y = 8 + gh - bh;
         const g = ctx.createLinearGradient(0, y, 0, 8 + gh);
         g.addColorStop(0, BAU.levelColor(p));
-        g.addColorStop(1, 'rgba(255,162,62,0.25)');
+        g.addColorStop(1, 'rgba(45,212,191,0.25)');
         ctx.fillStyle = g;
         ctx.beginPath();
         ctx.roundRect(x, y, bw, bh, 2);
@@ -253,9 +369,15 @@
           ctx.fillStyle = 'rgba(230,241,238,0.8)';
           ctx.fillRect(x, py - 1, bw, 2);
         }
-        /* etiquetas: en los centros de octava (paso = bandas por octava) */
-        const labelStep = Math.max(1, +this.el.rtaRes.value || 3);
-        if (i % labelStep === 0) {
+        /* etiquetas: 1/1 todas; 1/3 cada 3; finas solo en nominales ANSI */
+        let show;
+        if (nPer === 1) show = true;
+        else if (nPer === 3) show = i % 3 === 0;
+        else {
+          const fc = this.bands[i].fc;
+          show = this.NOMINALS.some((nm) => Math.abs(Math.log2(fc / nm)) < 0.5 / nPer);
+        }
+        if (show) {
           ctx.fillStyle = 'rgba(140,163,160,0.7)';
           const lbl = DSP.bandLabel(this.bands[i].fc);
           ctx.fillText(lbl, x + bw / 2 - ctx.measureText(lbl).width / 2, h - 6);
@@ -313,7 +435,9 @@
 
       const cal = global.BA_STATE.cal;
       const calFn = global.BA_STATE.micCalDb;
-      const top = +this.el.spTop.value + cal;
+      /* escala del espectrograma en dB SPL: techo (130 por defecto) y rango (80)
+         → piso 50 dB SPL: el promedio de trabajo (90 dB) queda al centro */
+      const top = +this.el.spTop.value;
       const range = +this.el.spRange.value;
       const bottom = top - range;
       const binHz = AE.sampleRate / AE.fftSize;
@@ -365,13 +489,15 @@
         ctx.beginPath(); ctx.moveTo(padL, yy); ctx.lineTo(padL + plotW, yy); ctx.stroke();
         ctx.fillText(f >= 1000 ? (f / 1000) + 'k' : f.toFixed(0), 6, yy + 3);
       });
-      /* línea de 0 dBFS/SPL cal */
-      const y0 = (1 - (top - bottom) / range) * H;
-      if (y0 > 0 && y0 < H) {
+      /* línea de referencia 90 dB SPL (promedio de trabajo) */
+      const yRef = (1 - (90 - bottom) / range) * H;
+      if (yRef > 0 && yRef < H) {
         ctx.strokeStyle = 'rgba(245,176,76,0.5)';
         ctx.setLineDash([4, 4]);
-        ctx.beginPath(); ctx.moveTo(padL, y0); ctx.lineTo(padL + plotW, y0); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(padL, yRef); ctx.lineTo(padL + plotW, yRef); ctx.stroke();
         ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(245,176,76,0.75)';
+        ctx.fillText('90 dB prom', 6, yRef - 3);
       }
 
       /* ── barra de magnitud (escala completa de color) ── */
