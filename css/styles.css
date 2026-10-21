@@ -1031,6 +1031,31 @@ html.js .reveal.is-visible { opacity: 1; transform: none; }
 }
 .footer-grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 40px; padding-bottom: 44px; }
 .footer-brand p { margin-top: 16px; color: var(--text-3); font-size: 0.92rem; max-width: 34ch; }
+.footer-madeby {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 14px; padding: 6px 14px;
+  font-family: var(--font-display); font-size: 0.8rem; font-weight: 500;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--cream-dim);
+  border: 1px solid #453c2b; border-radius: 99px;
+  background: linear-gradient(180deg, var(--panel-hi), var(--surface));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.footer-madeby::before {
+  content: ""; width: 7px; height: 7px; border-radius: 99px;
+  background: var(--green); box-shadow: 0 0 7px var(--green);
+}
+.footer-madeby b { color: var(--amber); font-weight: 600; }
+.footer-madeby-mid {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-display); font-size: 0.78rem;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3);
+}
+.footer-madeby-mid b { color: var(--amber); font-weight: 600; }
+.footer-madeby-mid::before {
+  content: ""; width: 6px; height: 6px; border-radius: 99px;
+  background: var(--green); box-shadow: 0 0 6px var(--green);
+}
 .footer-social { display: flex; gap: 10px; margin-top: 20px; }
 .footer-social a {
   display: inline-flex;

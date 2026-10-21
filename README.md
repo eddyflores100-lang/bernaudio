@@ -82,10 +82,13 @@ bernaudio/
 ├── index.html          # Landing completa (una sola página)
 ├── app.html            # BernAudio Web — app de medición funcional
 ├── subs.html           # Diseñador de arreglos de subs (nuevo módulo web)
+├── privacy.html        # Política de privacidad (BA-PRV-01)
+├── terms.html          # Términos de uso y licencia EULA (BA-TRM-01)
 ├── css/
-│   ├── styles.css      # Sistema de diseño dark premium (landing)
+│   ├── styles.css      # Sistema de diseño consola 80s (landing)
 │   ├── app.css         # Estilos de la app
-│   └── subs.css        # Estilos del diseñador de arreglos
+│   ├── subs.css        # Estilos del diseñador de arreglos
+│   └── legal.css       # Estilos de documentos legales (manual 80s)
 ├── js/
 │   ├── main.js         # Motores de visualización canvas (landing)
 │   ├── subarray.js     # Motor de física de arreglos de subs (mapa/polar/ondas)
@@ -108,6 +111,12 @@ bernaudio/
 ├── .nojekyll           # Sirve los archivos tal cual (sin procesamiento Jekyll)
 └── README.md
 ```
+
+## ⚖️ Documentación legal
+
+- **[Política de privacidad](privacy.html)** (DOC. BA-PRV-01): procesamiento 100 % local del audio, sin telemetría, sin cookies de seguimiento, sin recopilación de datos personales. `localStorage` solo guarda preferencias (calibración del micrófono, ajustes) en tu dispositivo.
+- **[Términos de uso y EULA](terms.html)** (DOC. BA-TRM-01): licencia de uso (personal, educativa y comercial permitida), restricciones de marca, garantía limitada, limitación de responsabilidad y aviso expreso de que BernAudio **no es un sonómetro certificado** (IEC 61672 / ANSI S1.4).
+- Ambos documentos están enlazados desde el footer completo de todas las páginas (incluido el app y la página 404) con la atribución **“Hecho por Alicelabs LLC”**.
 
 ## 🚀 Publicar en GitHub Pages (elige una vía)
 

@@ -10,7 +10,7 @@
     body {
       margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
       background: #16130e; color: #efe8d6;
-      font-family: "Inter", system-ui, sans-serif; text-align: center; padding: 24px;
+      font-family: "Inter", system-ui, sans-serif; text-align: center; padding: 24px 24px 72px;
     }
     .code { font-size: clamp(4rem, 12vw, 8rem); font-weight: 700; letter-spacing: -.04em;
       background: linear-gradient(92deg, #ffa23e, #ffd9a0 50%, #ff7a33);
@@ -24,8 +24,18 @@
   <main>
     <div class="code">404</div>
     <p><strong>Señal perdida.</strong> Esta página no existe — como un eco fuera de rango.</p>
-    <a href="/">Volver al inicio</a>
+    <a href="index.html">Volver al inicio</a>
     <p style="font-size:12px;color:#5d6b80;margin-top:22px">Serás redirigido automáticamente en 6 segundos…</p>
   </main>
+  <footer style="position:fixed;bottom:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:center;padding:12px 16px;border-top:1px solid rgba(232,223,197,.12);background:rgba(15,13,8,.85);font-size:11px;color:#7e7560">
+    <span style="font-family:Oswald,'Arial Narrow',sans-serif;font-size:13px;color:#e8dfc5">Bern<em style="font-style:normal;color:#ffa23e">Audio</em></span>
+    <span style="letter-spacing:.1em;text-transform:uppercase">Hecho por <b style="color:#ffa23e">Alicelabs LLC</b></span>
+    <a href="index.html" style="display:inline;background:none;border:none;padding:0;color:#b3a98f;text-decoration:none;text-transform:none;letter-spacing:0;font-family:inherit;font-weight:400">Inicio</a>
+    <a href="app.html" style="display:inline;background:none;border:none;padding:0;color:#b3a98f;text-decoration:none;text-transform:none;letter-spacing:0;font-family:inherit;font-weight:400">App de medición</a>
+    <a href="subs.html" style="display:inline;background:none;border:none;padding:0;color:#b3a98f;text-decoration:none;text-transform:none;letter-spacing:0;font-family:inherit;font-weight:400">Arreglos de Subs</a>
+    <a href="privacy.html" style="display:inline;background:none;border:none;padding:0;color:#b3a98f;text-decoration:none;text-transform:none;letter-spacing:0;font-family:inherit;font-weight:400">Privacidad</a>
+    <a href="terms.html" style="display:inline;background:none;border:none;padding:0;color:#b3a98f;text-decoration:none;text-transform:none;letter-spacing:0;font-family:inherit;font-weight:400">Términos</a>
+    <span style="opacity:.75">© 2026 Alicelabs LLC — BernAudio™ es una marca de Alicelabs LLC</span>
+  </footer>
 </body>
 </html>

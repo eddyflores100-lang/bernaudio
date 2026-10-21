@@ -339,7 +339,27 @@
     <span>cal: <b id="stCal">94 dBFS→SPL</b></span>
     <span class="spacer" style="flex:1"></span>
     <a href="index.html">← Landing</a>
-    <a href="https://github.com/eddyflores100-lang/bernaudio" target="_blank" rel="noopener">GitHub</a><span style="opacity:.6">© Alicelabs LLC</span>
+    <a href="subs.html">Subs</a>
+    <a href="privacy.html">Privacidad</a>
+    <a href="terms.html">Términos</a>
+    <a href="https://github.com/eddyflores100-lang/bernaudio" target="_blank" rel="noopener">GitHub</a>
+  </footer>
+
+  <!-- ── Barra legal ── -->
+  <footer class="app-legalbar">
+    <div class="alb-left">
+      <span class="alb-brand">Bern<em>Audio</em></span>
+      <span class="alb-by">by Alicelabs</span>
+      <span class="alb-madeby">Hecho por <b>Alicelabs LLC</b></span>
+    </div>
+    <div class="alb-right">
+      <a href="index.html">Inicio</a>
+      <a href="subs.html">Arreglos de Subs</a>
+      <a href="privacy.html">Privacidad</a>
+      <a href="terms.html">Términos</a>
+      <a href="terms.html#eula">EULA</a>
+      <span class="alb-copy">© <span id="albYear">2026</span> Alicelabs LLC — BernAudio™ es una marca de Alicelabs LLC</span>
+    </div>
   </footer>
 
   <script src="js/app/dsp.js"></script>
@@ -349,5 +369,9 @@
   <script src="js/app/modules-delay.js"></script>
   <script src="js/app/modules-cal.js"></script>
   <script src="js/app/ui.js"></script>
+  <script>
+    /* Año dinámico de la barra legal — Alicelabs LLC */
+    (function () { var y = document.getElementById("albYear"); if (y) y.textContent = String(new Date().getFullYear()); })();
+  </script>
 </body>
 </html>
