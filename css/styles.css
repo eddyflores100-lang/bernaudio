@@ -861,17 +861,20 @@ button { font-family: inherit; cursor: pointer; }
 .footer-legal a { color: var(--text-3); transition: color .15s ease; }
 .footer-legal a:hover { color: var(--teal); }
 
-/* ─── Reveal on scroll ─── */
-.reveal {
+/* ─── Reveal on scroll ─────────────────────────────────────────
+   Solo se oculta si JS está activo (html.js). Sin JavaScript o si
+   cualquier script falla, TODO el contenido es visible: nunca más
+   una página de «solo títulos». ─────────────────────────────── */
+html.js .reveal {
   opacity: 0;
   transform: translateY(22px);
   transition: opacity .6s ease, transform .6s ease;
 }
-.reveal.is-visible { opacity: 1; transform: none; }
+html.js .reveal.is-visible { opacity: 1; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .reveal { opacity: 1; transform: none; transition: none; }
+  html.js .reveal { opacity: 1; transform: none; transition: none; }
   .badge-pill .dot, .rec-dot { animation: none; }
 }
 

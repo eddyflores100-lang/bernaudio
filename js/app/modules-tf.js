@@ -145,7 +145,8 @@
 
     init() {
       ['tfStart', 'tfStop', 'tfAutoDelay', 'tfFindDelay', 'tfSmooth', 'tfView', 'tfDelayChip',
-       'tfRef', 'tfDelayMs', 'tfDelayMsChip', 'tfPolarity', 'tfSaveTrace', 'tfClearTraces', 'cvTf']
+       'tfRef', 'tfDelayMs', 'tfDelayMsChip', 'tfPolarity', 'tfSaveTrace', 'tfClearTraces',
+       'tfExportCsv', 'tfExportPng', 'cvTf']
         .forEach((id) => (this.el[id] = document.getElementById(id)));
       this.el.tfStart.addEventListener('click', () => this.start());
       this.el.tfStop.addEventListener('click', () => this.stop());
@@ -162,6 +163,8 @@
       this.el.tfPolarity.addEventListener('change', () => { this.polarity = this.el.tfPolarity.checked; });
       this.el.tfSaveTrace.addEventListener('click', () => this.saveTrace());
       this.el.tfClearTraces.addEventListener('click', () => { this.traces = []; });
+      this.el.tfExportCsv.addEventListener('click', () => this.exportCsv());
+      this.el.tfExportPng.addEventListener('click', () => this.exportPng());
       const n2 = this.W / 2;
       this.SxyRe = new Float64Array(n2 + 1); this.SxyIm = new Float64Array(n2 + 1);
       this.Sxx = new Float64Array(n2 + 1); this.Syy = new Float64Array(n2 + 1);
@@ -171,7 +174,11 @@
     },
 
     start() {
-      if (this.measuring || !AE.running) return;
+      if (this.measuring) return;
+      if (!AE.running || !AE.analyser) {
+        global.UI.setStatus('Sin micrófono activo — pulsa «Detener» e inicia de nuevo dando permiso de micro');
+        return;
+      }
       /* referencia por canal 2 solo si se pidieron 2 canales */
       if (this.refSource === 'ch2' && AE.channels < 2) {
         this.refSource = 'gen';
@@ -199,6 +206,43 @@
       if (this._unsubMic) { this._unsubMic(); this._unsubMic = null; }
       if (this._unsubRef) { this._unsubRef(); this._unsubRef = null; }
       global.UI.setStatus('TF detenida — puedes guardar traza A/B/C');
+    },
+
+    /* Exportar medición actual: CSV (f, mag, fase, coherencia) y PNG del gráfico */
+    exportCsv() {
+      if (!this.updates) {
+        global.UI.setStatus('No hay medición que exportar — mide primero con ruido rosa');
+        return;
+      }
+      const N = this.W, n2 = N / 2, binHz = AE.sampleRate / N;
+      const fMin = 20, fMax = Math.min(20000, AE.sampleRate / 2 * 0.95);
+      let rows = '\uFEFFfrecuencia_hz,magnitud_db,fase_deg,coherencia\n';
+      for (let k = 1; k <= n2; k++) {
+        const f = k * binHz;
+        if (f < fMin || f > fMax) continue;
+        const coh = Math.min(1, Math.max(0, this.coher[k]));
+        rows += f.toFixed(2) + ',' + this.magDb[k].toFixed(3) + ',' +
+          this.phaseDeg[k].toFixed(3) + ',' + coh.toFixed(4) + '\n';
+      }
+      const blob = new Blob([rows], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'bernaudio_tf.csv';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      global.UI.setStatus('TF exportada a CSV (' + this.updates + ' promedios)');
+    },
+
+    exportPng() {
+      try {
+        const a = document.createElement('a');
+        a.href = this.el.cvTf.toDataURL('image/png');
+        a.download = 'bernaudio_tf.png';
+        a.click();
+        global.UI.setStatus('Gráfico exportado a PNG');
+      } catch (e) {
+        global.UI.setStatus('No se pudo exportar el PNG');
+      }
     },
     resetAvg() {
       this.SxyRe.fill(0); this.SxyIm.fill(0); this.Sxx.fill(0); this.Syy.fill(0);
@@ -453,7 +497,11 @@
     },
 
     async measure() {
-      if (this.state === 'rec' || this.state === 'computing' || !AE.running || !AE.analyser) return;
+      if (this.state === 'rec' || this.state === 'computing') return;
+      if (!AE.running || !AE.analyser) {
+        global.UI.setStatus('Sin micrófono activo — pulsa «Detener» e inicia de nuevo dando permiso de micro');
+        return;
+      }
       Gen.stop();
       const dur = +this.el.irDur.value;
       this.sr = AE.sampleRate;

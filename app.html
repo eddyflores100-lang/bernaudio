@@ -13,6 +13,8 @@
 </head>
 <body>
 
+  <noscript><div style="background:#7F1D1D;color:#fff;padding:14px 18px;font-family:sans-serif;text-align:center">BernAudio Web necesita JavaScript para medir. Actívalo en tu navegador y recarga la página.</div></noscript>
+
   <!-- ── Overlay de inicio (gesto de usuario para getUserMedia) ── -->
   <div class="overlay" id="overlay">
     <div class="start-card">
@@ -57,6 +59,7 @@
         <option value="4096">4096</option>
         <option value="8192" selected>8192</option>
         <option value="16384">16384</option>
+        <option value="32768">32768</option>
       </select>
     </div>
     <div class="tb-group">
@@ -106,7 +109,7 @@
     <section class="module" id="mod-rta">
       <div class="controls">
         <div class="ctl"><label>Resolución</label>
-          <select id="rtaRes"><option value="1">1/1 oct</option><option value="3" selected>1/3 oct</option></select>
+          <select id="rtaRes"><option value="1">1/1 oct</option><option value="3" selected>1/3 oct</option><option value="6">1/6 oct</option></select>
         </div>
         <div class="ctl"><label>Ponderación</label>
           <select id="rtaWeight"><option value="Z">Z</option><option value="A">A</option><option value="C">C</option></select>
@@ -161,6 +164,8 @@
         </div>
         <button class="btn btn-sm" id="tfSaveTrace" title="Memoriza la medición actual para comparar con otra fuente">＋ Guardar traza</button>
         <button class="btn btn-sm btn-danger" id="tfClearTraces">Limpiar trazas</button>
+        <button class="btn btn-sm" id="tfExportCsv" title="Descarga magnitud, fase y coherencia como CSV">💾 CSV</button>
+        <button class="btn btn-sm" id="tfExportPng" title="Descarga el gráfico como imagen PNG">🖼 PNG</button>
         <span class="chip" id="tfDelayChip">delay: —</span>
       </div>
       <div class="panel"><canvas id="cvTf"></canvas></div>

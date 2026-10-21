@@ -253,8 +253,9 @@
           ctx.fillStyle = 'rgba(230,241,238,0.8)';
           ctx.fillRect(x, py - 1, bw, 2);
         }
-        /* etiquetas: 1/1 todas; 1/3 cada 3 */
-        if (this.el.rtaRes.value === '1' || i % 3 === 0) {
+        /* etiquetas: en los centros de octava (paso = bandas por octava) */
+        const labelStep = Math.max(1, +this.el.rtaRes.value || 3);
+        if (i % labelStep === 0) {
           ctx.fillStyle = 'rgba(140,163,160,0.7)';
           const lbl = DSP.bandLabel(this.bands[i].fc);
           ctx.fillText(lbl, x + bw / 2 - ctx.measureText(lbl).width / 2, h - 6);

@@ -31,9 +31,9 @@ requisito para acceder al micrófono). Sin registro, sin instalación.
 | Módulo | Qué hace |
 |--------|----------|
 | **SPL** | Nivel sonoro con ponderación A/C/Z, respuesta Fast/Slow, LAeq acumulado, Lmin/Lmax, pico, historial de 120 s y calibración por offset |
-| **RTA** | Analizador 1/1 y 1/3 de octava (ANSI base 2), ponderación A/C/Z, promediado 1–16, peak-hold (decaimiento o fijo) y hasta 4 curvas guardadas |
+| **RTA** | Analizador 1/1, 1/3 y 1/6 de octava (ANSI base 2), ponderación A/C/Z, promediado 1–16, peak-hold (decaimiento o fijo), FFT hasta 32K y hasta 4 curvas guardadas |
 | **Espectrograma** | Cascada en tiempo real con eje logarítmico, escala completa de magnitud (barra de color dB) + crosshair de lectura (ratón/táctil), 4 colormaps, rango dinámico y techo ajustables |
-| **Función de transferencia** | Magnitud, fase y coherencia con referencia interna (ruido rosa) o **canal 2 por cable loopback** (modo pro 2 canales). Delay automático por correlación cruzada + **ajuste fino ±20 ms**, **inversión de polaridad**, suavizado 1/6–1/12 oct y **trazas A/B/C para comparar dos o más fuentes** |
+| **Función de transferencia** | Magnitud, fase y coherencia con referencia interna (ruido rosa) o **canal 2 por cable loopback** (modo pro 2 canales). Delay automático por correlación cruzada + **ajuste fino ±20 ms**, **inversión de polaridad**, suavizado 1/6–1/12 oct, **trazas A/B/C para comparar dos o más fuentes** y **exportación CSV (f·mag·fase·coherencia) y PNG** |
 | **Delay Finder** | **Tiempo de delay entre dos fuentes sonoras**: modo 1 micro secuencial A→B (ideal iPad) o modo 2 micros en vivo (interfaz estéreo). Δt, Δdistancia, confianza y recomendación de a qué fuente añadir el delay |
 | **Impulso (IR)** | Medición por barrido logarítmico (método Farina) con deconvolución Wiener, delay en ms/metros, RT60 estimado (T20/Schroeder) y exportación WAV |
 | **Calibración** | **Carga el archivo de corrección del micrófono (.cal/.csv/.txt/.frd) sin pistófono**: curva aplicada en vivo a SPL, RTA, espectrograma y TF; persistente en el navegador y exportable a CSV |
