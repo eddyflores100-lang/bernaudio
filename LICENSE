@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 BernAudio
+Copyright (c) 2026 Alicelabs LLC (BernAudio™)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +19,13 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+Aviso de marca: "BernAudio", el logotipo de faders y los nombres "Model 80",
+"Alicelabs" y "by Alicelabs" son marcas de Alicelabs LLC. La licencia MIT
+anterior cubre el código fuente; no otorga derechos sobre las marcas,
+el nombre comercial ni los materiales de identidad visual del proyecto.
+Para detalles de uso del servicio web, consulta los Términos de Uso y la
+licencia EULA en https://bernaudio.utalabs.tech/terms.html y la página de
+licencias en https://bernaudio.utalabs.tech/licencias.html

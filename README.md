@@ -84,6 +84,7 @@ bernaudio/
 ├── subs.html           # Diseñador de arreglos de subs (nuevo módulo web)
 ├── privacy.html        # Política de privacidad (BA-PRV-01)
 ├── terms.html          # Términos de uso y licencia EULA (BA-TRM-01)
+├── licencias.html      # Licencias y marcas: MIT, EULA, terceros (BA-LIC-01)
 ├── css/
 │   ├── styles.css      # Sistema de diseño consola 80s (landing)
 │   ├── app.css         # Estilos de la app
@@ -204,7 +205,10 @@ Abre `http://localhost:8080` en tu navegador.
 
 ## 📄 Licencia
 
-MIT — ver [LICENSE](LICENSE).
+MIT — ver [LICENSE](LICENSE). Titular del copyright: **Alicelabs LLC** (BernAudio™).
+La licencia cubre el código; las marcas (BernAudio, Model 80, Alicelabs) requieren
+permiso aparte. Detalles completos, marcas de terceros y créditos de componentes en
+la página [licencias.html](https://bernaudio.utalabs.tech/licencias.html) (DOC. BA-LIC-01).
 
 
 ---
