@@ -124,7 +124,7 @@
         const y = h / 2 - data[i] * h * 0.45;
         i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       }
-      ctx.strokeStyle = '#2DD4BF'; ctx.lineWidth = 1.4; ctx.stroke();
+      ctx.strokeStyle = '#FFA23E'; ctx.lineWidth = 1.4; ctx.stroke();
     },
   };
 
@@ -416,7 +416,7 @@
       });
       /* 0 dB y 0° */
       const y0 = padT + plotH / 2;
-      ctx.strokeStyle = 'rgba(45,212,191,0.25)';
+      ctx.strokeStyle = 'rgba(255,162,62,0.25)';
       ctx.beginPath(); ctx.moveTo(padL, y0); ctx.lineTo(padL + plotW, y0); ctx.stroke();
 
       if (this.updates < 2 && !this.traces.length) return;
@@ -454,7 +454,7 @@
       plotLine(coh, yOfCoh, '#8CA3A0', 1, 0.25);
 
       /* magnitud en vivo */
-      if (view === 'both' || view === 'mag') plotLine(mag, yOfMag, '#2DD4BF', 1.6, 1);
+      if (view === 'both' || view === 'mag') plotLine(mag, yOfMag, '#FFA23E', 1.6, 1);
       /* fase en vivo */
       if (view === 'both' || view === 'phase') plotLine(phase, yOfPh, 'rgba(245,176,76,0.85)', 1.2, 1);
 
@@ -463,7 +463,7 @@
 
     _legend(ctx, padL, padT) {
       ctx.font = '11px Inter, sans-serif';
-      ctx.fillStyle = '#2DD4BF'; ctx.fillText('— Magnitud (dB)', padL + 8, padT + 12);
+      ctx.fillStyle = '#FFA23E'; ctx.fillText('— Magnitud (dB)', padL + 8, padT + 12);
       ctx.fillStyle = 'rgba(245,176,76,0.9)'; ctx.fillText('— Fase', padL + 120, padT + 12);
       ctx.fillStyle = '#8CA3A0'; ctx.fillText('▁ coherencia', padL + 180, padT + 12);
       const traceColors = ['#F5B04C', '#B794F6', '#F97066'];
@@ -611,7 +611,7 @@
         const yy = padT + (DSP.clamp(-db, 0, 80) / 80) * plotH;
         i === 0 ? ctx.moveTo(xx, yy) : ctx.lineTo(xx, yy);
       }
-      ctx.strokeStyle = '#2DD4BF'; ctx.lineWidth = 1.4; ctx.stroke();
+      ctx.strokeStyle = '#FFA23E'; ctx.lineWidth = 1.4; ctx.stroke();
       /* pico */
       const px = padL + ((this.peakIdx - from) / (n - 1)) * plotW;
       ctx.strokeStyle = 'rgba(245,176,76,0.6)'; ctx.setLineDash([4, 4]);

@@ -1,7 +1,7 @@
 <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1200" height="630" fill="#06080C"/>
+  <rect width="1200" height="630" fill="#16130E"/>
   <g opacity="0.35">
-    <g fill="#2DD4BF">
+    <g fill="#FFA23E">
       <rect x="80" y="430" width="18" height="120" rx="4"/>
       <rect x="130" y="380" width="18" height="170" rx="4" opacity=".7"/>
       <rect x="180" y="460" width="18" height="90" rx="4" opacity=".5"/>
@@ -26,13 +26,13 @@
     </g>
   </g>
   <g transform="translate(80,120)">
-    <rect width="72" height="72" rx="19" fill="#134E4A"/>
-    <rect width="72" height="72" rx="19" stroke="rgba(45,212,191,.45)" stroke-width="1.5"/>
-    <path d="M18 36v0M18 30v12M27 22v28M36 16v40M45 26v20M54 30v12" stroke="#EAFDF9" stroke-width="5" stroke-linecap="round"/>
+    <rect width="72" height="72" rx="19" fill="#2A1A0E"/>
+    <rect width="72" height="72" rx="19" stroke="rgba(255,162,62,.45)" stroke-width="1.5"/>
+    <path d="M18 36v0M18 30v12M27 22v28M36 16v40M45 26v20M54 30v12" stroke="#FFE9C4" stroke-width="5" stroke-linecap="round"/>
   </g>
-  <text x="180" y="172" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="700" fill="#E8EEF6">Bern<tspan fill="#2DD4BF">Audio</tspan></text>
-  <text x="80" y="290" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="700" fill="#E8EEF6">El análisis de audio profesional,</text>
-  <text x="80" y="370" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="700" fill="#2DD4BF">al alcance de todos.</text>
+  <text x="180" y="172" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="700" fill="#EFE8D6">Bern<tspan fill="#FFA23E">Audio</tspan></text>
+  <text x="80" y="290" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="700" fill="#EFE8D6">El análisis de audio profesional,</text>
+  <text x="80" y="370" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="700" fill="#FFA23E">al alcance de todos.</text>
   <text x="80" y="445" font-family="Arial, Helvetica, sans-serif" font-size="26" fill="#97A5B9">Medición en tiempo real · RTA · Espectrograma · Transferencia · IR · SPL remoto · IA</text>
   <text x="80" y="560" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="#5D6B80">Windows · macOS · Linux · iPad — bernaudio</text>
 </svg>

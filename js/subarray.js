@@ -60,19 +60,19 @@
     return lut;
   }
   const LUT_SPL = buildLut([
-    [0.00,   6, 11, 18],
-    [0.16,  11, 46, 58],
-    [0.34,  13, 92, 86],
-    [0.52,  22,144,126],
-    [0.66,  45,212,191],
-    [0.78, 165,232,199],
-    [0.89, 245,176, 76],
-    [1.00, 255,245,216]
+    [0.00,  14, 11,  6],
+    [0.16,  52, 22, 10],
+    [0.34, 122, 45, 14],
+    [0.52, 200, 92, 22],
+    [0.66, 255,148, 50],
+    [0.78, 255,196,110],
+    [0.89, 255,228,170],
+    [1.00, 255,246,222]
   ]);
   const LUT_POS = buildLut([
-    [0.00,  10, 16, 22],
-    [0.55,  24,120,112],
-    [1.00,  45,212,191]
+    [0.00,  16, 13,  8],
+    [0.55, 140, 70, 20],
+    [1.00, 255,162, 62]
   ]);
   const LUT_NEG = buildLut([
     [0.00,  10, 16, 22],
@@ -292,7 +292,7 @@
     const rings = [0, -6, -12, -18, -24, -30];
     for (const db of rings) {
       const rad = (db + 30) / 30 * Rmax;
-      ctx.strokeStyle = db === 0 ? 'rgba(148,163,184,.4)' : 'rgba(148,163,184,.14)';
+      ctx.strokeStyle = db === 0 ? 'rgba(201,191,162,.45)' : 'rgba(201,191,162,.14)';
       ctx.beginPath();
       ctx.arc(cxm, cym, Math.max(1, rad), 0, Math.PI * 2);
       ctx.stroke();
@@ -317,23 +317,23 @@
       if (i === 0) ctx.moveTo(x2, y2); else ctx.lineTo(x2, y2);
     }
     ctx.closePath();
-    ctx.fillStyle = 'rgba(45,212,191,.14)';
+    ctx.fillStyle = 'rgba(255,162,62,.16)';
     ctx.fill();
-    ctx.strokeStyle = '#2dd4bf';
+    ctx.strokeStyle = '#ffa23e';
     ctx.lineWidth = 2;
     ctx.stroke();
     // etiquetas
-    ctx.fillStyle = '#e8eef6';
+    ctx.fillStyle = '#efe8d6';
     ctx.font = '600 11px Inter, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('0° · público', cxm, cym - Rmax - 8);
-    ctx.fillStyle = 'rgba(151,165,185,.9)';
+    ctx.fillStyle = 'rgba(179,169,143,.9)';
     ctx.font = '10px Inter, sans-serif';
     ctx.fillText('90°', cxm + Rmax + 16, cym + 3);
     ctx.fillText('270°', cxm - Rmax - 18, cym + 3);
     ctx.fillText('180° · atrás', cxm, cym + Rmax + 16);
     ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(151,165,185,.9)';
+    ctx.fillStyle = 'rgba(179,169,143,.9)';
     ctx.fillText(f + ' Hz · radio ' + Rp.toFixed(1) + ' m · ' + subs.length + ' cajas', 12, ch - 12);
   }
 
@@ -444,12 +444,12 @@
     for (const s of subs) {
       const [x, y] = w2px(s.x, s.y);
       c2.fillStyle = s.pol < 0 ? 'rgba(245,176,76,.92)' : 'rgba(14,26,34,.94)';
-      c2.strokeStyle = s.pol < 0 ? '#f5b04c' : '#2dd4bf';
+      c2.strokeStyle = s.pol < 0 ? '#e14b33' : '#ffa23e';
       c2.lineWidth = 1.6;
       roundRect(c2, x - bw / 2, y - bw / 2, bw, bw, 3);
       c2.fill(); c2.stroke();
       if (bw >= 12) {
-        c2.fillStyle = s.pol < 0 ? '#f5b04c' : '#eafdf9';
+        c2.fillStyle = s.pol < 0 ? '#e14b33' : '#ffe9c4';
         c2.font = '600 ' + Math.max(8, bw * 0.62) + 'px Inter, sans-serif';
         c2.textAlign = 'center';
         c2.textBaseline = 'middle';
@@ -509,7 +509,7 @@
     c2.fillStyle = 'rgba(6,10,15,.62)';
     roundRect(c2, 10, 10, Math.min(240, cw - 70), 40, 8);
     c2.fill();
-    c2.fillStyle = '#e8eef6';
+    c2.fillStyle = '#efe8d6';
     c2.font = '600 11px "Space Grotesk", Inter, sans-serif';
     c2.textAlign = 'left';
     c2.fillText(names[SA.type], 20, 26);

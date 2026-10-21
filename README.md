@@ -177,7 +177,7 @@ Abre `http://localhost:8080` en tu navegador.
 ## 🎨 Sistema de diseño
 
 - **Fondo:** `#06080C` (dark premium)
-- **Acento principal:** teal `#2DD4BF`
+- **Acento principal:** teal `#FFA23E`
 - **Acento secundario:** ámbar `#F5B04C`
 - **Tipografías:** Space Grotesk (títulos) · Inter (cuerpo)
 - Las visualizaciones del hero, la demo y el CTA son **canvas reales** (RTA, espectrograma y función de transferencia simulados), no videos ni GIFs.
@@ -185,3 +185,8 @@ Abre `http://localhost:8080` en tu navegador.
 ## 📄 Licencia
 
 MIT — ver [LICENSE](LICENSE).
+
+
+---
+
+© 2026 Alicelabs LLC. Todos los derechos reservados. BernAudio™ es una marca de Alicelabs LLC.

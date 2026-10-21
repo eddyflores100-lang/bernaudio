@@ -239,7 +239,7 @@
       }
       /* línea de 0 ms */
       const x0 = padL + plotW / 2;
-      ctx.strokeStyle = 'rgba(45,212,191,0.3)';
+      ctx.strokeStyle = 'rgba(255,162,62,0.3)';
       ctx.beginPath(); ctx.moveTo(x0, padT); ctx.lineTo(x0, padT + plotH); ctx.stroke();
 
       /* curva de correlación */
@@ -249,7 +249,7 @@
         const yy = padT + plotH * (1 - ((this.corr[k] || 0) / mx + 1) / 2);
         k === kC - kSpan ? ctx.moveTo(xx, yy) : ctx.lineTo(xx, yy);
       }
-      ctx.strokeStyle = '#2DD4BF'; ctx.lineWidth = 1.4; ctx.stroke();
+      ctx.strokeStyle = '#FFA23E'; ctx.lineWidth = 1.4; ctx.stroke();
 
       /* marcador del pico */
       let best = kC, bestV = -Infinity;

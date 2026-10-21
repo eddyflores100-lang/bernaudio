@@ -142,16 +142,16 @@
         const yy = BAU.yToPx(v, yMin, yMax, h - 18);
         i === 0 ? ctx.moveTo(px(i + (this.histMax - n)), yy) : ctx.lineTo(px(i + (this.histMax - n)), yy);
       }
-      ctx.strokeStyle = '#2DD4BF'; ctx.lineWidth = 1.6; ctx.stroke();
+      ctx.strokeStyle = '#FFA23E'; ctx.lineWidth = 1.6; ctx.stroke();
       ctx.lineTo(px(this.histMax), h - 18); ctx.lineTo(px(this.histMax - n), h - 18); ctx.closePath();
-      ctx.fillStyle = 'rgba(45,212,191,0.12)'; ctx.fill();
+      ctx.fillStyle = 'rgba(255,162,62,0.12)'; ctx.fill();
     },
   };
 
   /* ════════════════ MÓDULO RTA ════════════════ */
   const RTA = {
     bands: [], disp: null, peaks: null, peakMode: 'decay',
-    curves: [], curveColors: ['#2DD4BF', '#F5B04C', '#F97066', '#B794F6'],
+    curves: [], curveColors: ['#FFA23E', '#F5B04C', '#F97066', '#B794F6'],
     avgN: 8,
 
     el: {},
@@ -242,7 +242,7 @@
         const y = 8 + gh - bh;
         const g = ctx.createLinearGradient(0, y, 0, 8 + gh);
         g.addColorStop(0, BAU.levelColor(p));
-        g.addColorStop(1, 'rgba(45,212,191,0.25)');
+        g.addColorStop(1, 'rgba(255,162,62,0.25)');
         ctx.fillStyle = g;
         ctx.beginPath();
         ctx.roundRect(x, y, bw, bh, 2);
