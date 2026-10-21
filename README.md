@@ -14,6 +14,20 @@ Linux e iPad.
 **[▶ Lanzar la app](app.html)** — corre 100% en tu navegador (GitHub Pages sirve HTTPS,
 requisito para acceder al micrófono). Sin registro, sin instalación.
 
+**[🧉 Diseñador de arreglos de subs](subs.html)** — módulo web independiente, también gratis:
+
+| Vista | Qué hace |
+|-------|----------|
+| **6 arreglos** | Línea recta, arco electrónico (steering), arco físico, end-fired, gradiente de 2 filas y stack invertido |
+| **Mapa SPL** | Suma coherente de fuentes puntuales (1/r + delay + polaridad) por frecuencia o banda ancha 40–125 Hz, normalizado a 0 dB |
+| **Polar 360°** | Directividad real del arreglo en círculo completo, escala −30…0 dB |
+| **Ondas animadas** | Interferencia en el dominio del tiempo (ralentizada 4.5×) para ver cómo suman y cancelan |
+| **Tabla de delays** | ms, muestras @48/96 kHz y polaridad por caja, lista para tipear en tu DSP y exportable a CSV |
+| **Física ajustable** | Temperatura → velocidad del sonido (331.3 + 0.606·T), preset λ/4, frecuencias 31–125 Hz |
+
+> Verificado numéricamente: gradiente a λ/4 ≈ 29 dB de rechazo trasero,
+> end-fired 4× ≈ 26 dB, línea de 6 ≈ +15.4 dB de acople frontal.
+
 | Módulo | Qué hace |
 |--------|----------|
 | **SPL** | Nivel sonoro con ponderación A/C/Z, respuesta Fast/Slow, LAeq acumulado, Lmin/Lmax, pico, historial de 120 s y calibración por offset |
@@ -67,11 +81,15 @@ curvas de calibración. 40 tests unitarios en Node (`scripts/test-dsp.js`).
 bernaudio/
 ├── index.html          # Landing completa (una sola página)
 ├── app.html            # BernAudio Web — app de medición funcional
+├── subs.html           # Diseñador de arreglos de subs (nuevo módulo web)
 ├── css/
 │   ├── styles.css      # Sistema de diseño dark premium (landing)
-│   └── app.css         # Estilos de la app
+│   ├── app.css         # Estilos de la app
+│   └── subs.css        # Estilos del diseñador de arreglos
 ├── js/
 │   ├── main.js         # Motores de visualización canvas (landing)
+│   ├── subarray.js     # Motor de física de arreglos de subs (mapa/polar/ondas)
+│   ├── subarray-ui.js  # Cableado de UI del diseñador
 │   └── app/
 │       ├── dsp.js          # Motor DSP (FFT, ponderaciones, bandas, IR, RT60, xcorr, cal)
 │       ├── audio-engine.js # AudioContext, micrófono 1/2 canales, taps de bloques
