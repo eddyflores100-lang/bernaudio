@@ -39,7 +39,12 @@ Para comprobar el proyecto con Node.js y npm:
 
 ```bash
 npm test
+npm run check
 ```
+
+Después de modificar CSS o JavaScript, ejecuta `npm run version-assets` y guarda
+los cambios de las páginas antes de publicar. Los identificadores de contenido
+evitan reutilizar código de audio anterior desde la caché del navegador/CDN.
 
 La aplicación se puede servir en un alojamiento estático. Para GitHub Pages, el
 contenido está en la raíz y `CNAME` contiene el dominio personalizado. Cambia ese

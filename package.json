@@ -4,10 +4,13 @@
   "private": true,
   "description": "Local browser audio measurement tools by Alicelabs LLC",
   "license": "MIT",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "node --test",
     "check": "node scripts/check-site.js",
-    "serve": "python3 -m http.server 8080"
+    "serve": "python3 -m http.server 8080",
+    "version-assets": "node scripts/version-assets.js"
   }
 }

@@ -250,7 +250,7 @@ async function harness({ denyMicrophone = false, deferMicrophone = false } = {})
   sandbox.window = sandbox; vm.createContext(sandbox);
   const scriptFiles = [];
   for (const script of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
-    const src = script[1].match(/\bsrc=["']([^"']+)["']/i)?.[1];
+    const src = script[1].match(/\bsrc=["']([^"']+)["']/i)?.[1]?.split('?')[0];
     const filename = src || 'app.html:inline';
     if (src) scriptFiles.push(src);
     vm.runInContext(src ? fs.readFileSync(path.join(root, src), 'utf8') : script[2], sandbox, { filename });

@@ -19,7 +19,8 @@ for (const file of files.filter(f => f.endsWith('.html'))) {
       continue;
     }
     if (/^(https?:|mailto:|data:|tel:)/.test(value)) continue;
-    const [local, fragment] = value.split('#');
+    const [resource, fragment] = value.split('#');
+    const local = resource.split('?')[0];
     const target = local.startsWith('/') ? path.join(root, local) : path.resolve(path.dirname(file), local || path.basename(file));
     if (!fs.existsSync(target)) failures.push(file + ': broken local path ' + value);
     else if (fragment && target.endsWith('.html') && !new RegExp('\\bid="' + fragment + '"').test(fs.readFileSync(target, 'utf8')))

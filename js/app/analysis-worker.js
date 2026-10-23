@@ -1,7 +1,7 @@
 /* Local, cancellable IR analysis. Audio capture and UI stay on their threads. */
 'use strict';
 self.window = self;
-importScripts('dsp.js');
+importScripts('dsp.js?v=fe59dd301ab0');
 function referenceCorrelation(rec, sweep, offset) {
   const n = sweep.length;
   if (!n || !Number.isInteger(offset) || offset < 0 || offset + n > rec.length) return 0;

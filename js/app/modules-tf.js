@@ -712,7 +712,7 @@
         // Long transforms run in a cancellable local worker when supported.
         if (global.Worker && document.baseURI) {
           try {
-            const workerUrl = new URL('js/app/analysis-worker.js', document.baseURI).href;
+            const workerUrl = new URL('js/app/analysis-worker.js?v=f6ecf46b6283', document.baseURI).href;
             this._worker = new global.Worker(workerUrl);
             this._worker.onmessage = (e) => {
               if (token !== this._token) return;

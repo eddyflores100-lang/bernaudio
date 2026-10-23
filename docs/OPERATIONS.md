@@ -7,6 +7,11 @@ Actualizado el 22 de octubre de 2026. Alicelabs LLC.
 La app no necesita un servidor de audio ni claves API. Sirve los archivos de la
 raíz en HTTPS. `CNAME` conserva `bernaudio.utalabs.tech`. Las pruebas y los
 controles de enlaces/sintaxis se ejecutan con `npm test` y `npm run check`.
+Los recursos CSS/JavaScript, el worklet y el Worker incluyen versiones derivadas
+de su contenido. Ejecuta `npm run version-assets` tras editar estos archivos; las
+pruebas detectan versiones ausentes o desactualizadas. Esto evita reutilizar una
+ruta de audio anterior desde la caché después de publicar.
+
 El workflow de CI solo tiene permiso de lectura del repositorio. `deploy.sh`
 verifica el proyecto y publica la rama local sin forzar ni reescribir el historial.
 

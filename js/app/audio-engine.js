@@ -14,7 +14,7 @@
       const ctx = new Context({ latencyHint: 'interactive' }); this.ctx = ctx;
       this.sampleRate = this.ctx.sampleRate; this.sessionId++; this._workletReady = false;
       if (this.ctx.audioWorklet && global.AudioWorkletNode) {
-        try { await this.ctx.audioWorklet.addModule('js/app/capture-worklet.js'); this._workletReady = true; }
+        try { await this.ctx.audioWorklet.addModule('js/app/capture-worklet.js?v=48be96b12ebd'); this._workletReady = true; }
         catch (e) { console.warn('Captura compatible: AudioWorklet no disponible.', e); }
       }
       if (epoch !== this._epoch) { try { await ctx.close(); } catch (_) {} throw this._aborted(); }

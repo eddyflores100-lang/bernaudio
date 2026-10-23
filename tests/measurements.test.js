@@ -355,7 +355,8 @@ test('IR worker is local, transfers capture buffers, and terminates on cancellat
   };
   await h.ir.measure(); h.ir.finish(); h.flushTimers();
   assert.equal(workers.length, 1);
-  assert.equal(workers[0].url, 'https://bernaudio.example/js/app/analysis-worker.js');
+  assert.equal(new URL(workers[0].url).origin, 'https://bernaudio.example');
+  assert.equal(new URL(workers[0].url).pathname, '/js/app/analysis-worker.js');
   assert.equal(workers[0].transfer.length, 2);
   h.ir.cancel(); assert.equal(workers[0].terminated, true);
   workers[0].onmessage({ data: { error: 'late response' } });
@@ -368,7 +369,7 @@ test('local analysis worker computes an impulse without DOM or cloud dependencie
   worker.postMessage = (value, transfers) => posted.push({ value, transfers });
   vm.createContext(worker);
   worker.importScripts = (file) => {
-    assert.equal(file, 'dsp.js');
+    assert.equal(file.split('?')[0], 'dsp.js');
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/app/dsp.js'), 'utf8'), worker);
   };
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/app/analysis-worker.js'), 'utf8'), worker);
