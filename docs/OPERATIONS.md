@@ -10,11 +10,15 @@ controles de enlaces/sintaxis se ejecutan con `npm test` y `npm run check`.
 El workflow de CI solo tiene permiso de lectura del repositorio. `deploy.sh`
 verifica el proyecto y publica la rama local sin forzar ni reescribir el historial.
 
-En la consulta de DNS realizada durante esta revisión, el subdominio devuelve
-NXDOMAIN tanto para A como CNAME. La autoridad de la zona `utalabs.tech` es
-Cloudflare (`pearl.ns.cloudflare.com`, `zahir.ns.cloudflare.com`). El código no
-puede crear un registro DNS en esa cuenta. Para publicar en el destino de GitHub
-Pages ya declarado en el proyecto, se requiere:
+Al inicio de la revisión, el subdominio devolvía NXDOMAIN. En la comprobación
+final ya resolvía y `https://bernaudio.utalabs.tech/` respondía HTTP 200,
+sirviendo los archivos nuevos después del despliegue correcto de GitHub Pages.
+La zona `utalabs.tech` utiliza Cloudflare (`pearl.ns.cloudflare.com`,
+`zahir.ns.cloudflare.com`). No se modificó DNS desde esta sesión y no queda un
+cambio DNS pendiente para la publicación comprobada.
+
+Referencia para una futura reconstrucción de la ruta hacia GitHub Pages
+(conserva los registros actuales mientras el sitio funcione):
 
 | Campo | Valor |
 | --- | --- |
@@ -22,7 +26,7 @@ Pages ya declarado en el proyecto, se requiere:
 | Tipo | `CNAME` |
 | Nombre | `bernaudio` |
 | Destino | `eddyflores100-lang.github.io` |
-| Proxy | Solo DNS durante la emisión/verificación del certificado de Pages |
+| Proxy | Solo DNS durante una nueva emisión/verificación del certificado de Pages |
 | TTL | Automático |
 
 Comprueba primero que Pages tenga configurado `bernaudio.utalabs.tech` como dominio
@@ -49,9 +53,15 @@ fronteras simuladas de dispositivos/Canvas. Cubren:
 - Flujos completos cargando los scripts en el orden real de `app.html`, incluidos
   cambio de dispositivo, permiso denegado, exportaciones, solo generador y cierre.
 
-Estas pruebas no equivalen a una medición física certificada. La revisión visual
-con un navegador real y la matriz de hardware/iPad quedan pendientes; el entorno
-de pruebas no dispone de ese hardware y el dominio no resuelve durante la revisión.
+También se verificó en Chrome de escritorio el sitio HTTPS publicado: landing,
+cambio de vistas, apertura de la app, arranque sin micrófono, salida senoidal de
+1 kHz y su monitor, parada, pestaña de calibración y simulador de gradiente con
+vista polar, tabla de delays/polaridades y descarga CSV real de seis fuentes
+con tres polaridades traseras invertidas. La salida quedó detenida al terminar.
+
+Las pruebas no equivalen a una medición física certificada. La matriz de
+micrófonos/interfaces reales y la revisión visual en hardware móvil/iPad siguen
+pendientes; las pruebas automatizadas simulan esas fronteras de dispositivos.
 
 ## Límites que deben comunicarse
 

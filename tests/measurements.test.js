@@ -174,6 +174,14 @@ test('generator silence does not claim to play and resumes a suspended context',
   assert.equal(h.gen.playing, true);
 });
 
+test('manual generator stop clears the playing status and stops the source', async () => {
+  const h = harness(); h.gen.el.genType.value = 'sine';
+  await h.gen.play(); const source = h.gen.osc;
+  h.gen.el.genStopBtn.dispatchEvent(new h.sandbox.Event('click'));
+  assert.equal(h.gen.playing, false); assert.equal(source.stopped, true);
+  assert.match(h.statuses.at(-1), /detenido.*silencio/i);
+});
+
 test('an old generator source onended cannot stop a replacement source', async () => {
   const h = harness();
   h.gen.el.genType.value = 'sweep'; await h.gen.play();

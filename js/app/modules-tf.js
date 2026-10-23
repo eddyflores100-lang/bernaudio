@@ -37,7 +37,9 @@
         }
       });
       this.el.genPlay.addEventListener('click', () => { this.stop(); this.play(); });
-      this.el.genStopBtn.addEventListener('click', () => this.stop());
+      this.el.genStopBtn.addEventListener('click', () => {
+        this.stop(); global.UI.setStatus('Generador detenido · salida en silencio');
+      });
       this.el.genToTf.addEventListener('click', () => {
         global.UI.showTab('tf');
         global.MOD_TF.start();
