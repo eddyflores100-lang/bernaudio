@@ -23,8 +23,9 @@
   /* ── FFT radix-2 iterativa (convención e^{-iθ}, in-place) ── */
   class FFT {
     constructor(n) {
-      n = n | 0;
-      if (n < 2 || (n & (n - 1)) !== 0) throw new Error('FFT: el tamaño debe ser potencia de 2');
+      if (!Number.isInteger(n) || n < 2 || n > 0x40000000 || (n & (n - 1)) !== 0) {
+        throw new Error('FFT: el tamaño debe ser potencia de 2');
+      }
       this.n = n;
       this.levels = Math.round(Math.log2(n));
       this.cosTable = new Float64Array(n / 2);
@@ -175,6 +176,29 @@
     return out;
   }
 
+  /* Potencia RMS por bin, unilateral y corregida por energía de ventana.
+     Σ 10^(out[k]/10) = Σ(samples[i]·win[i])² / Σwin[i]² (Parseval).
+     Una senoidal A=1 centrada en bin integra −3.0103 dBFS con las ventanas
+     rectangulares, Hann y Blackman-Harris periódicas habituales.
+     DC y Nyquist no se duplican. El silencio devuelve −Infinity. */
+  function powerSpectrumDb(samples, fft, win, re, im, out) {
+    const N = fft.n;
+    let windowEnergy = 0;
+    for (let i = 0; i < N; i++) {
+      re[i] = samples[i] * win[i];
+      im[i] = 0;
+      windowEnergy += win[i] * win[i];
+    }
+    fft.forward(re, im);
+    const half = N >> 1, scale = N * windowEnergy;
+    for (let k = 0; k <= half; k++) {
+      const factor = k === 0 || k === half ? 1 : 2;
+      const power = scale > 0 ? factor * (re[k] * re[k] + im[k] * im[k]) / scale : 0;
+      out[k] = dbFromPower(power);
+    }
+    return out;
+  }
+
   /* Etiquetas nominales ANSI */
   function bandLabel(fc) {
     if (fc >= 1000) {
@@ -251,7 +275,7 @@
 
   /* ── Deconvolución sweep → IR (Wiener regularizada) ────────
      rec: grabación (Float32Array), sweep: señal enviada, sr
-     devuelve { ir: Float32Array, n: longitud FFT usada }         */
+     devuelve { ir: Float32Array, N: longitud FFT usada }         */
   function deconvolveIR(rec, sweep) {
     const N = nextPow2(rec.length + sweep.length);
     const Sre = new Float64Array(N), Sim = new Float64Array(N);
@@ -288,42 +312,63 @@
     return { idx, val };
   }
 
-  /* ── RT60 por Schroeder + EDT/T30 (ISO 3382) ─────────────── */
+  /* ── Estimación RT60 de banda ancha por integración de Schroeder ──
+     Regresión de mínimos cuadrados: EDT 0..−10, T20 −5..−25,
+     T30 −5..−35 dB. No es una medición/certificación ISO 3382.
+     Se exige R²≥0.98 y margen de 10 dB sobre la contribución estimada
+     del ruido de cola. Esa comprobación es conservadora: la captura
+     necesita cola suficiente y las curvas no exponenciales pueden rechazarse. */
   function schroederRT60(ir, sr, peakIdx) {
-    const start = clamp((peakIdx | 0) + Math.round(0.01 * sr), 0, ir.length - 1);
-    // energía acumulada hacia atrás
+    const invalid = () => ({ rt60: null, detail: '--', decayDb: 0, edt: null, t20: null, t30: null, curveDb: null });
+    const start = peakIdx == null ? 0 : peakIdx;
+    if (!ir.length || !Number.isFinite(sr) || sr <= 0 || !Number.isInteger(start) || start < 0 || start >= ir.length) return invalid();
     const E = new Float64Array(ir.length - start);
     let acc = 0;
     for (let i = E.length - 1; i >= 0; i--) {
-      acc += ir[start + i] * ir[start + i];
+      const sample = ir[start + i];
+      if (!Number.isFinite(sample)) return invalid();
+      acc += sample * sample;
       E[i] = acc;
     }
-    if (E[0] <= 0) return { rt60: null, detail: '--', decayDb: 0, edt: null, t20: null, t30: null, curveDb: null };
+    if (!(E[0] > 0) || !Number.isFinite(E[0])) return invalid();
     const dB = new Float64Array(E.length);
-    for (let i = 0; i < E.length; i++) dB[i] = 10 * Math.log10(E[i] / E[0]);
-    const t5 = findCross(dB, -5);
-    const t10 = findCross(dB, -10);
-    const t25 = findCross(dB, -25);
-    const t35 = findCross(dB, -35);
-    /* EDT (ISO 3382): 0..−10 dB extrapolado ×6; la curva empieza en pico+10 ms,
-       por eso se suma ese offset al cruce */
-    const edt = t10 != null ? (6 * (t10 + (start - (peakIdx | 0)))) / sr : null;
-    const t20 = t5 != null && t25 != null && t25 > t5 ? 3 * ((t25 - t5) / sr) : null;
-    const t30 = t5 != null && t35 != null && t35 > t5 ? 2 * ((t35 - t5) / sr) : null;
-    if (t5 == null || t25 == null || t25 <= t5) {
-      return { rt60: null, detail: '--', decayDb: -dB[dB.length - 1], edt, t20: null, t30, curveDb: dB };
+    let decayDb = 0;
+    for (let i = 0; i < E.length; i++) {
+      dB[i] = dbFromPower(E[i] / E[0]);
+      if (Number.isFinite(dB[i])) decayDb = Math.max(decayDb, -dB[i]);
     }
-    const rt60 = 3 * ((t25 - t5) / sr);
-    return { rt60, detail: 'T20', decayDb: -dB[dB.length - 1], edt, t20, t30, curveDb: dB };
+    const tailStart = Math.floor(0.9 * E.length);
+    const noisePower = E[tailStart] / (E.length - tailStart);
+
+    function fitDecay(upperDb, lowerDb) {
+      const from = upperDb === 0 ? 0 : findCross(dB, upperDb);
+      const to = findCross(dB, lowerDb);
+      if (from == null || to == null) return null;
+      const first = Math.ceil(from), last = Math.floor(to), count = last - first + 1;
+      if (count < 8 || E[last] < 10 * noisePower * (E.length - last)) return null;
+      let meanT = 0, meanDb = 0;
+      for (let i = first; i <= last; i++) { meanT += i / sr; meanDb += dB[i]; }
+      meanT /= count; meanDb /= count;
+      let xx = 0, yy = 0, xy = 0;
+      for (let i = first; i <= last; i++) {
+        const x = i / sr - meanT, y = dB[i] - meanDb;
+        xx += x * x; yy += y * y; xy += x * y;
+      }
+      const slope = xy / xx, r2 = xy * xy / (xx * yy);
+      const rt = -60 / slope;
+      return Number.isFinite(rt) && rt > 0 && slope < 0 && r2 >= 0.98 ? rt : null;
+    }
+    const edt = fitDecay(0, -10), t20 = fitDecay(-5, -25), t30 = fitDecay(-5, -35);
+    return { rt60: t30 ?? t20, detail: t30 != null ? 'T30' : t20 != null ? 'T20' : '--', decayDb, edt, t20, t30, curveDb: dB };
   }
-  /* Claridad C50 / C80 (ISO 3382): 10·log10(∫0..T / ∫T..∞) desde la llegada
-     del directo (pico de la IR). tSplit en ms. Devuelve { c50, c80 }. */
+  /* Claridad C50 / C80: 10·log10(energía temprana / tardía) desde la llegada
+     del directo (pico de la IR), usando toda la cola disponible.
+     No sustituye una medición por bandas ni una certificación ISO 3382. */
   function clarityC(ir, sr, peakIdx) {
     const t0 = clamp((peakIdx | 0), 0, ir.length - 1);
     const n50 = Math.round(0.05 * sr), n80 = Math.round(0.08 * sr);
     let e50 = 0, e80 = 0, eTot = 0;
-    const end = Math.min(ir.length, t0 + Math.round(1.0 * sr)); // ventana 1 s
-    for (let i = t0; i < end; i++) {
+    for (let i = t0; i < ir.length; i++) {
       const e = ir[i] * ir[i];
       const rel = i - t0;
       if (rel < n50) e50 += e;
@@ -349,6 +394,12 @@
   /* ── Export WAV PCM 16-bit mono ──────────────────────────── */
   function encodeWav(samples, sr) {
     const n = samples.length;
+    if (!Number.isInteger(sr) || sr < 1 || sr > Math.floor(0xffffffff / 2)) {
+      throw new Error('WAV: frecuencia de muestreo no válida');
+    }
+    if (!Number.isInteger(n) || n < 0 || n > Math.floor((0xffffffff - 36) / 2)) {
+      throw new Error('WAV: longitud fuera del límite RIFF PCM');
+    }
     const buf = new ArrayBuffer(44 + n * 2);
     const v = new DataView(buf);
     const wstr = (off, s) => { for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i)); };
@@ -358,23 +409,31 @@
     v.setUint16(32, 2, true); v.setUint16(34, 16, true);
     wstr(36, 'data'); v.setUint32(40, n * 2, true);
     for (let i = 0; i < n; i++) {
-      let s = clamp(samples[i], -1, 1);
+      const s = Number.isFinite(samples[i]) ? clamp(samples[i], -1, 1) : 0;
       v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
     }
     return buf;
   }
 
-  /* ── Suavizado por bandas fraccionarias de octava (visual) ── */
-  function fracOctSmooth(freqs, valuesDb, frac) {
-    const out = new Float64Array(valuesDb.length);
-    const ratio = Math.pow(2, frac / 2);
+  /* ── Suavizado por bandas fraccionarias de octava (visual) ──
+     nPerOct=6 → ancho total 1/6 octava; 12 → 1/12 octava.
+     Frecuencias positivas en orden ascendente (DC se conserva).
+     Media triangular sobre el eje log2; no limita la ventana por nº de bins. */
+  function fracOctSmooth(freqs, valuesDb, nPerOct) {
+    const out = Float64Array.from(valuesDb);
+    if (!(nPerOct > 0) || !Number.isFinite(nPerOct)) return out;
+    const halfWidth = 1 / (2 * nPerOct);
+    const logs = Float64Array.from(freqs, (f) => f > 0 ? Math.log2(f) : -Infinity);
+    let lo = 0, hi = 0;
     for (let i = 0; i < valuesDb.length; i++) {
-      const f = freqs[i];
+      const center = logs[i];
+      if (!Number.isFinite(center)) continue;
+      while (lo < logs.length && logs[lo] < center - halfWidth) lo++;
+      while (hi < logs.length && logs[hi] <= center + halfWidth) hi++;
       let sum = 0, wsum = 0;
-      for (let j = Math.max(0, i - 64); j < Math.min(valuesDb.length, i + 65); j++) {
-        const r = freqs[j] / f;
-        if (r < 1 / ratio || r > ratio) continue;
-        const w = 1 - Math.abs(Math.log2(r)) / (frac / 2);
+      for (let j = lo; j < hi; j++) {
+        if (!Number.isFinite(valuesDb[j])) continue;
+        const w = Math.max(0, 1 - Math.abs(logs[j] - center) / halfWidth);
         sum += valuesDb[j] * w; wsum += w;
       }
       out[i] = wsum > 0 ? sum / wsum : valuesDb[i];
@@ -382,15 +441,46 @@
     return out;
   }
 
+  /* Fase en grados: media circular para no promediar +179/−179 como 0°. */
+  function fracOctSmoothPhase(freqs, phaseDeg, nPerOct) {
+    const radians = Math.PI / 180;
+    const real = fracOctSmooth(freqs, Float64Array.from(phaseDeg, (v) => Math.cos(v * radians)), nPerOct);
+    const imag = fracOctSmooth(freqs, Float64Array.from(phaseDeg, (v) => Math.sin(v * radians)), nPerOct);
+    return Float64Array.from(phaseDeg, (v, i) => {
+      if (!(freqs[i] > 0) || Math.hypot(real[i], imag[i]) < 1e-12) return v;
+      return Math.atan2(imag[i], real[i]) / radians;
+    });
+  }
+
   /* ── Correlación cruzada FFT (delay finder / TF) ────────────
      IFFT(conj(A)·B) — el pico en lag=+D indica que b está retrasada
-     D muestras respecto a a (verificado analíticamente).           */
+     D muestras respecto a a. Se elimina DC y se busca el máximo absoluto:
+     peak y coefficient conservan el signo (polaridad). conf es |coefficient|,
+     normalizado por energía, NO una probabilidad ni prueba de delay único.
+     Correlación circular: los retardos deben estar dentro de ±N/2. */
   function xcorrPeak(a, b, fft) {
     const N = a.length;
+    if (b.length !== N || (fft && fft.n !== N)) throw new Error('correlación: tamaños incompatibles');
     const are = new Float64Array(N), aim = new Float64Array(N);
     const bre = new Float64Array(N), bim = new Float64Array(N);
-    are.set(a); bre.set(b);
     const f = fft || new FFT(N);
+    const noSignal = () => ({ lag: 0, peak: 0, conf: 0, coefficient: 0, polarity: 0, corr: new Float64Array(N) });
+    let meanA = 0, meanB = 0, minA = Infinity, maxA = -Infinity, minB = Infinity, maxB = -Infinity;
+    for (let i = 0; i < N; i++) {
+      if (!Number.isFinite(a[i]) || !Number.isFinite(b[i])) return noSignal();
+      meanA += a[i]; meanB += b[i];
+      minA = Math.min(minA, a[i]); maxA = Math.max(maxA, a[i]);
+      minB = Math.min(minB, b[i]); maxB = Math.max(maxB, b[i]);
+    }
+    if (minA === maxA || minB === maxB) return noSignal();
+    meanA /= N; meanB /= N;
+    let energyA = 0, energyB = 0;
+    for (let i = 0; i < N; i++) {
+      are[i] = a[i] - meanA; bre[i] = b[i] - meanB;
+      energyA += are[i] * are[i]; energyB += bre[i] * bre[i];
+    }
+    const norm = Math.sqrt(energyA) * Math.sqrt(energyB);
+    if (!(norm > 0) || !Number.isFinite(norm)) return noSignal();
     f.forward(are, aim);
     f.forward(bre, bim);
     for (let i = 0; i < N; i++) {
@@ -399,31 +489,32 @@
       bre[i] = rr; bim[i] = ii;
     }
     f.inverse(bre, bim);
-    let best = 0, bestV = -Infinity;
-    for (let i = 0; i < N; i++) if (bre[i] > bestV) { bestV = bre[i]; best = i; }
+    let best = 0, bestV = 0;
+    for (let i = 0; i < N; i++) {
+      if (!Number.isFinite(bre[i])) return noSignal();
+      if (Math.abs(bre[i]) > Math.abs(bestV)) { bestV = bre[i]; best = i; }
+    }
     const lag = best > N / 2 ? best - N : best;       // lag con signo
-    let s2 = 0;
-    for (let i = 0; i < N; i++) s2 += bre[i] * bre[i];
-    const rms = Math.sqrt(s2 / N) || 1e-20;
-    const conf = clamp(bestV / (rms * 40), 0, 1);     // 1 → pico nítido
-    return { lag, peak: bestV, conf, corr: Float64Array.from(bre) };
+    const coefficient = clamp(bestV / norm, -1, 1);
+    const conf = Math.abs(coefficient);
+    return { lag, peak: bestV, conf, coefficient, polarity: Math.sign(bestV), corr: bre };
   }
 
   /* ── Calibración de micrófono: parseo e interpolación ────── */
-  /* Token numérico con sufijo opcional (1k → 1000; 250Hz → 250) */
-  function parseNumTok(tok) {
-    if (!tok) return NaN;
-    const m = tok.match(/^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/);
+  /* Tokens completos: nunca interpreta el prefijo numérico de texto arbitrario. */
+  function parseNumTok(tok, frequency) {
+    const m = String(tok || '').match(/^([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)([a-z]*)$/i);
     if (!m) return NaN;
-    let v = parseFloat(m[0]);
-    const rest = tok.slice(m[0].length).toLowerCase();
-    if (rest.charAt(0) === 'k') v *= 1000;
-    return v;
+    const unit = m[2].toLowerCase();
+    if (frequency ? !['', 'hz', 'k', 'khz'].includes(unit) : !['', 'db'].includes(unit)) return NaN;
+    return Number(m[1]) * (frequency && unit.charAt(0) === 'k' ? 1000 : 1);
   }
 
   /* Parsea texto de archivo de calibración (.cal/.csv/.txt/.frd).
-     Acepta líneas con 2+ números: frecuencia [Hz], corrección [dB].
+     Acepta filas que empiezan con frecuencia [Hz], corrección [dB].
      Ignora cabeceras, comentarios (#, ;, *) y líneas sin números.
+     Requiere ≥5 frecuencias únicas; duplicados iguales se unifican,
+     duplicados con correcciones contradictorias invalidan el archivo.
      Devuelve { freqs: Float64Array, db: Float64Array } o null.     */
   function parseCalFile(text) {
     if (!text) return null;
@@ -432,23 +523,27 @@
     for (let raw of lines) {
       const ln = raw.trim();
       if (!ln || /^[#;*\/]/.test(ln)) continue;
-      const toks = ln.split(/[\s,;\t]+/);
-      const nums = [];
-      for (let t of toks) {
-        const v = parseNumTok(t);
-        if (isFinite(v)) nums.push(v);
-        if (nums.length >= 2) break;
+      const toks = ln.split(/[\s,;\t]+/).map((tok) => tok.replace(/^"(.*)"$/, '$1'));
+      let f = parseNumTok(toks[0], true), next = 1;
+      if (/^(?:k?hz)$/i.test(toks[next] || '')) {
+        if (/^khz$/i.test(toks[next])) f *= 1000;
+        next++;
       }
-      if (nums.length < 2) continue;
-      const f = Math.abs(nums[0]);
-      const db = nums[1];
-      if (f > 0 && f <= 1e6 && isFinite(db) && Math.abs(db) <= 60) pts.push([f, db]);
+      const db = parseNumTok(toks[next], false);
+      if (Number.isFinite(f) && f > 0 && f <= 1e6 && Number.isFinite(db) && Math.abs(db) <= 60) pts.push([f, db]);
     }
-    if (pts.length < 5) return null;
     pts.sort((a, b) => a[0] - b[0]);
-    const freqs = new Float64Array(pts.length);
-    const db = new Float64Array(pts.length);
-    for (let i = 0; i < pts.length; i++) { freqs[i] = pts[i][0]; db[i] = pts[i][1]; }
+    const unique = [];
+    for (const pt of pts) {
+      const previous = unique[unique.length - 1];
+      if (previous && previous[0] === pt[0]) {
+        if (previous[1] !== pt[1]) return null;
+      } else unique.push(pt);
+    }
+    if (unique.length < 5) return null;
+    const freqs = new Float64Array(unique.length);
+    const db = new Float64Array(unique.length);
+    for (let i = 0; i < unique.length; i++) { freqs[i] = unique[i][0]; db[i] = unique[i][1]; }
     return { freqs, db };
   }
 
@@ -491,10 +586,10 @@
   /* ── Export ──────────────────────────────────────────────── */
   const DSP = {
     FFT, hannWindow, blackmanHarris, windowPowerGain,
-    aWeightDb, cWeightDb, octaveBands, octFloor, fftSpectrumDb, bandLabel, bandLevels,
+    aWeightDb, cWeightDb, octaveBands, octFloor, fftSpectrumDb, powerSpectrumDb, bandLabel, bandLevels,
     dbFromPower, dbFromAmp, powerFromDb, ampFromDb, clamp, nextPow2,
     makeWhiteNoise, makePinkNoise, makeSweep,
-    deconvolveIR, findPeak, schroederRT60, clarityC, encodeWav, fracOctSmooth, colormap,
+    deconvolveIR, findPeak, schroederRT60, clarityC, encodeWav, fracOctSmooth, fracOctSmoothPhase, colormap,
     xcorrPeak, parseCalFile, interpLogDb,
   };
 

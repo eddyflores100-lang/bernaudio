@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script>document.documentElement.classList.add('js');</script>
   <title>BernAudio Subs — Diseñador de arreglos de subwoofers · Alicelabs LLC</title>
-  <meta name="description" content="Diseña y simula arreglos de subs: línea recta, arco electrónico, arco físico, end-fired, gradiente y stack invertido. Mapa de interferencia, polar 360°, ondas animadas y tabla de delays exportable. Gratis, en español y sin instalar nada." />
+  <meta name="description" content="Explora arreglos de subwoofers con un modelo ideal de fuentes puntuales en campo libre. Mapa relativo, polar de campo lejano y tabla de delays exportable. Gratis, en español y sin instalar." />
   <meta property="og:title" content="BernAudio Subs — Arreglos de subwoofers, mejorados" />
-  <meta property="og:description" content="Simulación física real de arreglos de subs: mapa SPL, polar 360°, ondas animadas y delays por caja. Gratis y en tu navegador." />
+  <meta property="og:description" content="Modelo ideal de arreglos de subs: mapa de nivel relativo, polar de campo lejano y delays por caja. Gratis y en tu navegador." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://bernaudio.utalabs.tech/assets/og.png" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="css/subs.css" />
 </head>
 <body>
+<a class="subs-skip-link" href="#disenador">Saltar al diseñador de arreglos</a>
 
 <!-- ══════════════ NAV ══════════════ -->
 <header class="nav" id="nav">
@@ -34,7 +35,7 @@
     </a>
     <nav class="nav-links" id="navLinks" aria-label="Navegación principal">
       <a href="index.html#caracteristicas">Características</a>
-      <a href="index.html#precios">Precios</a>
+      <a href="index.html#caracteristicas">Herramientas</a>
       <a href="app.html">App de medición</a>
       <a href="subs.html" class="is-current" aria-current="page">Arreglos de Subs</a>
       <a href="app.html" class="btn btn-sm btn-primary nav-cta">Lanzar app</a>
@@ -50,44 +51,44 @@
 <!-- ══════════════ HERO ══════════════ -->
 <section class="sub-hero">
   <div class="container">
-    <span class="badge-pill"><span class="dot"></span> Nuevo módulo web — gratis para siempre</span>
+    <span class="badge-pill"><span class="dot"></span> Modelo ideal de campo libre · acceso gratuito</span>
     <h1>Diseñador de <span class="grad">arreglos de subs</span></h1>
     <p class="lead">
-      Línea recta, arco electrónico, arco físico, end-fired, gradiente y stack invertido:
+      Línea recta, puntería electrónica, arco físico, end-fire y gradiente:
       calcula los <strong>delays y polaridades de cada caja</strong>, y mira el resultado con
-      <strong>física real</strong> — mapa de interferencia, polar 360° y ondas animadas en tu navegador.
+      un <strong>modelo de fuentes puntuales omnidireccionales</strong> — mapa relativo, polar 360° y ondas animadas en tu navegador.
       Funciona en iPad, teléfono y computadora.
     </p>
     <ul class="os-row" aria-label="Ventajas">
-      <li>Gratis</li><li>Sin instalar</li><li>Español</li><li>Física en tiempo real</li><li>Exporta CSV</li>
+      <li>Gratis</li><li>Sin instalar</li><li>Español</li><li>Campo libre ideal</li><li>Exporta CSV</li>
     </ul>
   </div>
 </section>
 
 <!-- ══════════════ WORKBENCH ══════════════ -->
-<section class="section workbench-section">
+<section class="section workbench-section" id="disenador" aria-label="Diseñador de arreglos">
   <div class="container wb-grid">
 
     <aside class="wb-panel" aria-label="Configuración del arreglo">
       <h2 class="wb-title">1 · Tipo de arreglo</h2>
       <div class="type-grid" role="radiogroup" aria-label="Tipo de arreglo de subs">
         <button class="type-card is-active" data-type="line" role="radio" aria-checked="true">
-          <strong>Línea recta</strong><span>Máximo acople</span>
+          <strong>Línea recta</strong><span>Sin delays</span>
         </button>
         <button class="type-card" data-type="earc" role="radio" aria-checked="false">
-          <strong>Arco electrónico</strong><span>Steering con delays</span>
+          <strong>Puntería electrónica</strong><span>Línea con delays</span>
         </button>
         <button class="type-card" data-type="farc" role="radio" aria-checked="false">
-          <strong>Arco físico</strong><span>Geometría real</span>
+          <strong>Arco físico</strong><span>Fuentes en arco</span>
         </button>
         <button class="type-card" data-type="endfire" role="radio" aria-checked="false">
-          <strong>End-fired</strong><span>Cardioide direccional</span>
+          <strong>End-fire</strong><span>Delays progresivos</span>
         </button>
         <button class="type-card" data-type="grad" role="radio" aria-checked="false">
-          <strong>Gradiente 2 filas</strong><span>Cardioide frontal</span>
+          <strong>Gradiente 2 filas</strong><span>Inversión trasera</span>
         </button>
         <button class="type-card" data-type="stack" role="radio" aria-checked="false">
-          <strong>Stack invertido</strong><span>Cardioide de 2 cajas</span>
+          <strong>Par gradiente</strong><span>2 cajas en profundidad</span>
         </button>
       </div>
 
@@ -104,12 +105,12 @@
       </div>
 
       <div class="ctrl" data-show="line earc farc endfire grad">
-        <label for="inSpacing">Espaciado entre cajas: <output id="outSpacing">1.35 m</output></label>
+        <label for="inSpacing">Distancia entre centros: <output id="outSpacing">1.35 m</output></label>
         <input type="range" id="inSpacing" min="0.3" max="4" step="0.05" value="1.35" />
       </div>
 
       <div class="ctrl" data-show="grad stack">
-        <label for="inRowSep">Separación entre filas: <output id="outRowSep">1.35 m</output></label>
+        <label for="inRowSep">Separación en profundidad: <output id="outRowSep">1.35 m</output></label>
         <input type="range" id="inRowSep" min="0.3" max="4" step="0.05" value="1.35" />
       </div>
 
@@ -126,7 +127,7 @@
       <div class="ctrl">
         <label for="inFreq">Frecuencia de análisis: <output id="outFreq">63 Hz</output></label>
         <input type="range" id="inFreq" min="0" max="6" step="1" value="3" list="freqTicks" />
-        <datalist id="freqTicks"><option>31</option><option>40</option><option>50</option><option>63</option><option>80</option><option>100</option><option>125</option></datalist>
+        <datalist id="freqTicks"><option value="0" label="31 Hz"></option><option value="1" label="40 Hz"></option><option value="2" label="50 Hz"></option><option value="3" label="63 Hz"></option><option value="4" label="80 Hz"></option><option value="5" label="100 Hz"></option><option value="6" label="125 Hz"></option></datalist>
       </div>
 
       <div class="ctrl">
@@ -135,7 +136,8 @@
       </div>
 
       <div class="ctrl ctrl-check">
-        <label><input type="checkbox" id="inBroad" /> Promediar 31–125 Hz (banda ancha)</label>
+        <label><input type="checkbox" id="inBroad" aria-describedby="broadbandNote" /> Promediar potencias de 31–125 Hz</label>
+        <p class="ctrl-help" id="broadbandNote">7 frecuencias con el mismo peso. Se aplica al mapa y al polar; las ondas usan una sola frecuencia.</p>
         <label><input type="checkbox" id="inPolarity" checked /> Mostrar posiciones y etiquetas</label>
       </div>
 
@@ -148,13 +150,13 @@
     <div class="wb-stage-col">
       <div class="wb-stage">
         <div class="stage-tabs" role="tablist" aria-label="Vista de simulación">
-          <button class="stage-tab is-active" role="tab" aria-selected="true" data-view="map">Mapa SPL</button>
-          <button class="stage-tab" role="tab" aria-selected="false" data-view="polar">Polar 360°</button>
-          <button class="stage-tab" role="tab" aria-selected="false" data-view="waves">Ondas animadas</button>
+          <button class="stage-tab is-active" id="tabMap" role="tab" aria-selected="true" aria-controls="simulationPanel" data-view="map">Mapa relativo</button>
+          <button class="stage-tab" id="tabPolar" role="tab" aria-selected="false" aria-controls="simulationPanel" data-view="polar" tabindex="-1">Polar 360°</button>
+          <button class="stage-tab" id="tabWaves" role="tab" aria-selected="false" aria-controls="simulationPanel" data-view="waves" tabindex="-1">Ondas</button>
         </div>
-        <div class="stage-canvas-wrap">
-          <canvas id="saCanvas" aria-label="Simulación del arreglo de subs"></canvas>
-          <div class="stage-loading" id="stageLoading" hidden>Calculando…</div>
+        <div class="stage-canvas-wrap" id="simulationPanel" role="tabpanel" aria-labelledby="tabMap" tabindex="0">
+          <canvas id="saCanvas" role="img" aria-label="Simulación ideal del arreglo de subs" aria-describedby="simulationSummary modelNote">El resultado visual requiere Canvas. La tabla inferior muestra posiciones, delays y polaridades por caja.</canvas>
+          <div class="stage-loading" id="stageLoading" role="status" hidden>Calculando…</div>
         </div>
         <div class="stage-bar">
           <span id="roC">c = 343 m/s</span>
@@ -165,15 +167,20 @@
       </div>
       <div class="stage-actions">
         <button class="btn btn-primary" id="btnCsv" type="button">Exportar delays (CSV)</button>
+        <button class="btn btn-ghost" id="btnPauseWaves" type="button" aria-pressed="false" hidden>Pausar ondas</button>
         <a class="btn btn-ghost" href="app.html">Verificar midiendo con BernAudio
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </a>
       </div>
-      <p class="stage-note">
-        El mapa es una suma coherente de fuentes puntuales con 1/r, delay y polaridad por caja,
-        normalizada a 0 dB en el punto más fuerte. Diseña aquí y confirma en campo con el
-        Delay Finder y la función de transferencia de la app.
+      <p class="simulation-summary" id="simulationSummary" role="status" aria-live="polite"></p>
+      <p class="stage-note" id="modelNote">
+        Predicción ideal en campo libre de cajas idénticas, puntuales y omnidireccionales, con caída de presión 1/r, delay y polaridad.
+        El mapa usa 0 dB en el máximo de su rejilla visible; el polar usa el máximo de su patrón de campo lejano.
+        Cada vista se normaliza de nuevo: no expresa SPL absoluto ni permite comparar ganancia entre configuraciones por su color.
+        No incluye directividad del gabinete, respuesta del altavoz, filtros, suelo ni reflexiones de sala.
+        La amplitud se limita dentro de 0.5 m de cada fuente; esa zona no representa el campo cercano real. Confirma el diseño con mediciones en campo.
       </p>
+      <noscript><p class="stage-note">Activa JavaScript para calcular el arreglo y exportar sus delays.</p></noscript>
     </div>
   </div>
 </section>
@@ -184,12 +191,12 @@
     <div class="section-head">
       <span class="kicker">Ajusta tu procesador</span>
       <h2>Tabla de <span class="grad">delays y polaridad</span> por caja</h2>
-      <p class="section-sub">Valores listos para tipear en tu DSP. Muestras calculadas a 48 kHz y 96 kHz. La flecha del escenario apunta hacia el público (+Y).</p>
+      <p class="section-sub">Valores iniciales del modelo para tu DSP; verifica el resultado con mediciones. Delays mostrados a 0.001 ms y muestras redondeadas a 48 kHz y 96 kHz; el CSV conserva 6 decimales. La flecha apunta al público (+Y).</p>
     </div>
-    <div class="table-scroll reveal">
+    <div class="table-scroll reveal" role="region" aria-label="Tabla de delays y polaridad" tabindex="0">
       <table class="cmp delay-table" id="delayTable">
         <thead>
-          <tr><th>Caja</th><th>X (m)</th><th>Y (m)</th><th>Delay (ms)</th><th>Muestras @48k</th><th>Muestras @96k</th><th>Polaridad</th></tr>
+          <tr><th scope="col">Caja</th><th scope="col">X (m)</th><th scope="col">Y (m)</th><th scope="col">Delay (ms)</th><th scope="col">Muestras @48k</th><th scope="col">Muestras @96k</th><th scope="col">Polaridad</th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -203,40 +210,40 @@
     <div class="section-head">
       <span class="kicker">Guía rápida</span>
       <h2>¿Cuándo usar <span class="grad">cada arreglo</span>?</h2>
-      <p class="section-sub">La regla de oro: a λ/4 de la frecuencia de diseño (63 Hz → 1.36 m) la suma frontal y el rechazo trasero se equilibran.</p>
+      <p class="section-sub">λ/4 de separación (aprox. 1.36 m a 63 Hz y 20 °C) es un punto de partida para end-fire y gradiente. El patrón depende de la frecuencia, geometría, número de fuentes y procesamiento.</p>
     </div>
     <div class="feat-grid">
       <article class="feat-card reveal">
         <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"/><path d="M6 9v6M10 7v10M14 7v10M18 9v6"/></svg></span>
         <h3>Línea recta</h3>
-        <p>Todas las cajas juntas y sin procesar: <strong>+6 dB por duplicación</strong> cerca del arreglo y un lóbulo frontal que se estrecha al subir la frecuencia. Ideal para empujar SPL largo en sistemas omnidireccionales donde no importa lo que pasa atrás.</p>
+        <p>Cajas sobre el eje X, con la misma señal y sin delays. Duplicar fuentes idénticas aporta <strong>6.02 dB cuando llegan en fase y con igual amplitud</strong>. El espaciado y la frecuencia determinan los lóbulos. Este modelo de fuentes omnidireccionales es simétrico delante y detrás.</p>
       </article>
       <article class="feat-card reveal">
         <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c4-9 14-9 18 0"/><path d="M12 21v-4"/><path d="m8 13 2 4M16 13l-2 4"/></svg></span>
-        <h3>Arco electrónico</h3>
-        <p>Cajas en línea recta con <strong>delays progresivos</strong> que giran el lóbulo hacia el ángulo que necesitas cubrir, sin mover un gabinete. El delay de cada caja es <em>X·sen(θ)/c</em>; la tabla te da los ms exactos por caja.</p>
+        <h3>Puntería electrónica</h3>
+        <p>Cajas en línea recta con <strong>delays progresivos</strong>. El delay relativo es <em>X·sen(θ)/c</em>, desplazado para que el menor sea cero. El ángulo positivo va desde +Y hacia +X. Las fuentes omnidireccionales conservan un lóbulo simétrico en el semiplano trasero.</p>
       </article>
       <article class="feat-card reveal">
         <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19a9 9 0 0 1 16 0"/><path d="M12 21v-6"/><circle cx="12" cy="13" r="1.6"/></svg></span>
         <h3>Arco físico</h3>
-        <p>Las cajas se colocan sobre una geometría de arco con la apertura que elijas. Sin electrónica: la cobertura la define la <strong>forma del arreglo</strong>. Útil cuando quieres steering estable en toda la banda sin gastar canales de delay.</p>
+        <p>Los centros de las cajas se colocan sobre un arco, sin delays. La <strong>geometría modifica las diferencias de recorrido</strong> y la interferencia depende de la frecuencia. El modelo no simula la orientación ni la directividad de gabinetes reales.</p>
       </article>
       <article class="feat-card reveal feat-hot">
         <span class="feat-flag">Direccional</span>
         <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M12 9 5 4v10l7-5 7 5V4l-7 5"/></svg></span>
-        <h3>End-fired</h3>
-        <p>Varias cajas en profundidad, <strong>la más atrasada dispara primero</strong> y cada caja hacia adelante se retrasa distancia/c. A λ/4 de espaciado la energía suma al frente y se cancela atrás: cardioides de 15–25 dB de rechazo trasero.</p>
+        <h3>End-fire</h3>
+        <p>Varias cajas en profundidad: <strong>la más atrasada tiene 0 ms</strong> y las siguientes se retrasan distancia/c hacia el frente. Esto alinea la suma hacia +Y en campo lejano. A λ/4, un número par de fuentes produce un nulo trasero ideal a la frecuencia de diseño; no garantiza un rechazo fijo en toda la banda.</p>
       </article>
       <article class="feat-card reveal feat-hot">
         <span class="feat-flag">Clásico</span>
         <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M6 15h12"/><path d="M12 3v2M12 17v2"/></svg></span>
         <h3>Gradiente de 2 filas</h3>
-        <p>Fila trasera <strong>invertida de polaridad y retrasada distancia/c</strong> respecto a la delantera. A λ/4 entre filas obtienes suma frontal y nulo trasero con solo dos canales de procesamiento. El cardioide más usado en giras.</p>
+        <p>Fila trasera <strong>invertida de polaridad y retrasada distancia/c</strong> respecto a la delantera. El modelo predice cancelación trasera en campo lejano; a λ/4 la suma frontal alcanza su máximo a la frecuencia de diseño. La amplitud frontal cambia con la frecuencia.</p>
       </article>
       <article class="feat-card reveal">
         <span class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="4" width="8" height="6" rx="1"/><rect x="8" y="14" width="8" height="6" rx="1"/><path d="M12 10v4"/></svg></span>
-        <h3>Stack invertido</h3>
-        <p>Dos cajas una sobre otra: la trasera invertida y retrasada. Es el gradiente mínimo — <strong>dos cajas, un delay</strong> — perfecto cuando el espacio o el presupuesto no dan para más. Sube la separación de filas a λ/4 para máxima direccionalidad.</p>
+        <h3>Par gradiente</h3>
+        <p>Dos cajas separadas <strong>delante y detrás, sobre el eje Y</strong>, con la trasera invertida y retrasada distancia/c. Es un gradiente de una caja por fila. No representa dos cajas apiladas verticalmente; la separación indicada es entre centros en profundidad.</p>
       </article>
     </div>
   </div>
@@ -246,29 +253,26 @@
 <section class="section" id="compara">
   <div class="container">
     <div class="section-head">
-      <span class="kicker">Comparativa honesta</span>
-      <h2>BernAudio Subs frente a <span class="grad">las herramientas de pago</span></h2>
-      <p class="section-sub">Inspirado en las calculadoras y simuladores que la comunidad ya usa (SubMate, LSV Tools). Respeto total por esos proyectos: esto es lo que aportamos.</p>
+      <span class="kicker">Alcance del modelo</span>
+      <h2>Qué puedes <span class="grad">leer en cada resultado</span></h2>
+      <p class="section-sub">Usa la predicción para explorar interferencia y preparar ajustes iniciales; contrasta las decisiones finales con mediciones del sistema real.</p>
     </div>
-    <div class="table-scroll reveal">
+    <div class="table-scroll reveal" role="region" aria-label="Alcance y límites de los resultados" tabindex="0">
       <table class="cmp">
         <thead>
           <tr>
-            <th class="cmp-feat">Característica</th>
-            <th class="cmp-ba cmp-pro">BernAudio Subs</th>
-            <th>Herramientas de pago</th>
+            <th class="cmp-feat" scope="col">Resultado</th>
+            <th class="cmp-ba cmp-pro" scope="col">Qué representa</th>
+            <th scope="col">Cómo interpretarlo</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td class="cmp-feat">Precio</td><td class="cmp-ba cmp-pro"><strong>$0</strong></td><td>US$ 30 o membresía</td></tr>
-          <tr><td class="cmp-feat">Instalación</td><td class="cmp-ba cmp-pro">Ninguna — web</td><td>App o membresía</td></tr>
-          <tr><td class="cmp-feat">Simulación física coherente por frecuencia</td><td class="cmp-ba cmp-pro"><span class="ok">Sí</span> — mapa de interferencia real</td><td>Parcial (predicción estática)</td></tr>
-          <tr><td class="cmp-feat">Ondas animadas en el tiempo</td><td class="cmp-ba cmp-pro"><span class="ok">Sí</span></td><td><span class="no">No</span></td></tr>
-          <tr><td class="cmp-feat">Polar 360° interactivo</td><td class="cmp-ba cmp-pro"><span class="ok">Sí</span></td><td>Parcial</td></tr>
-          <tr><td class="cmp-feat">Tabla de delays exportable (CSV)</td><td class="cmp-ba cmp-pro"><span class="ok">Sí</span> — ms y muestras</td><td>Manual</td></tr>
-          <tr><td class="cmp-feat">Integración con medición real</td><td class="cmp-ba cmp-pro"><span class="ok">Sí</span> — Delay Finder y TF de BernAudio</td><td><span class="no">No</span></td></tr>
-          <tr><td class="cmp-feat">Español</td><td class="cmp-ba cmp-pro"><span class="ok">Sí</span></td><td><span class="ok">Sí</span></td></tr>
-          <tr><td class="cmp-feat">Funciona en iPad sin instalar</td><td class="cmp-ba cmp-pro"><span class="ok">Sí</span></td><td>App dedicada</td></tr>
+          <tr><td class="cmp-feat">Mapa relativo</td><td class="cmp-ba cmp-pro">Suma compleja de presión por frecuencia, con caída 1/r</td><td>0 dB en el máximo de la rejilla visible; escala de −30 a 0 dB, sin SPL absoluto</td></tr>
+          <tr><td class="cmp-feat">Promedio 31–125 Hz</td><td class="cmp-ba cmp-pro">Media de potencias a 31, 40, 50, 63, 80, 100 y 125 Hz</td><td>Igual peso por frecuencia; no representa un programa musical ni una respuesta continua</td></tr>
+          <tr><td class="cmp-feat">Polar 360°</td><td class="cmp-ba cmp-pro">Factor de arreglo ideal en campo lejano</td><td>0° = frente (+Y); normalizado al máximo del patrón, independiente del mapa</td></tr>
+          <tr><td class="cmp-feat">Ondas</td><td class="cmp-ba cmp-pro">Fase de presión a la frecuencia seleccionada</td><td>Movimiento ralentizado a 0.75 ciclos visuales/s; no reproduce velocidad real ni SPL</td></tr>
+          <tr><td class="cmp-feat">Tabla y CSV</td><td class="cmp-ba cmp-pro">Posición, delay relativo, muestras redondeadas y polaridad</td><td>Punto de partida para el DSP; no incluye latencias propias de cada gabinete o procesador</td></tr>
+          <tr><td class="cmp-feat">Medición</td><td class="cmp-ba cmp-pro">Acceso separado a la app de BernAudio</td><td>Los ajustes no se transfieren automáticamente; prepara las señales y verifica tu sistema</td></tr>
         </tbody>
       </table>
     </div>
@@ -278,8 +282,8 @@
 <!-- ══════════════ CTA ══════════════ -->
 <section class="cta-final">
   <div class="container cta-box">
-    <h2>Diseña el arreglo. <span class="grad">Mídelo en vivo.</span></h2>
-    <p>Exporta los delays, cárgalos en tu DSP y confirma el resultado con el Delay Finder y la función de transferencia de BernAudio — en la misma web, gratis.</p>
+    <h2>Explora el arreglo. <span class="grad">Compruébalo midiendo.</span></h2>
+    <p>Exporta los ajustes iniciales, introdúcelos en tu DSP y verifica el sistema real con mediciones. La app de BernAudio se abre por separado y no recibe automáticamente los valores del diseñador.</p>
     <div class="hero-cta cta-center">
       <a href="app.html" class="btn btn-primary btn-lg">Abrir la app de medición</a>
       <a href="#inicio" class="btn btn-ghost btn-lg">Volver al diseñador</a>
@@ -297,7 +301,7 @@
         <svg class="brand-mark" width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
           <rect x="1" y="1" width="30" height="30" rx="7" fill="url(#bgGradSF)"/>
           <path d="M8 14v4M12 10v12M16 6v20M20 11v10M24 14v4" stroke="#FFE9C4" stroke-width="2.4" stroke-linecap="round"/>
-          <defs><linearGradientid="bgGradSF"" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#58371F"/><stop offset="1" stop-color="#2A1A0E"/></linearGradient></defs>
+          <defs><linearGradient id="bgGradSF" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#58371F"/><stop offset="1" stop-color="#2A1A0E"/></linearGradient></defs>
         </svg>
         <span><span class="brand-name">Bern<em>Audio</em></span><span class="brand-sub">by Alicelabs</span></span>
       </a>
@@ -312,9 +316,9 @@
       <a href="index.html#caracteristicas">Características</a>
       <a href="app.html">App de medición</a>
       <a href="subs.html">Diseñador de arreglos de subs</a>
-      <a href="index.html#precios">Precios</a>
+      <a href="index.html#caracteristicas">Herramientas</a>
       <a href="index.html#demo">Demo online</a>
-      <a href="index.html#descargar">Descargas</a>
+      <a href="app.html">Descargas</a>
     </nav>
     <nav class="footer-col" aria-label="Recursos">
       <h4>Recursos</h4>

@@ -6,13 +6,24 @@
 (function () {
   "use strict";
 
-  var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.documentElement.classList.add("js");
+  var motionPreference = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  var reducedMotion = !!(motionPreference && motionPreference.matches);
+  var paused = reducedMotion;
+  var animationFrame = null;
 
-  /* ────────── Nav ────────── */
   var nav = document.getElementById("nav");
   var burger = document.getElementById("navBurger");
   var navLinks = document.getElementById("navLinks");
 
+  function closeMenu(restoreFocus) {
+    if (!burger || !navLinks) return;
+    navLinks.classList.remove("is-open");
+    burger.classList.remove("is-open");
+    burger.setAttribute("aria-expanded", "false");
+    burger.setAttribute("aria-label", "Abrir menú");
+    if (restoreFocus) burger.focus();
+  }
   function onScrollNav() {
     if (nav) nav.classList.toggle("is-scrolled", window.scrollY > 12);
   }
@@ -21,73 +32,23 @@
 
   if (burger && navLinks) {
     burger.addEventListener("click", function () {
-      var open = navLinks.classList.toggle("is-open");
+      var open = !navLinks.classList.contains("is-open");
+      navLinks.classList.toggle("is-open", open);
       burger.classList.toggle("is-open", open);
-      burger.setAttribute("aria-expanded", open ? "true" : "false");
+      burger.setAttribute("aria-expanded", String(open));
+      burger.setAttribute("aria-label", open ? "Cerrar menú" : "Abrir menú");
     });
-    navLinks.addEventListener("click", function (e) {
-      if (e.target.tagName === "A") {
-        navLinks.classList.remove("is-open");
-        burger.classList.remove("is-open");
-        burger.setAttribute("aria-expanded", "false");
-      }
+    navLinks.addEventListener("click", function (event) {
+      if (event.target.closest("a")) closeMenu(false);
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && navLinks.classList.contains("is-open")) closeMenu(true);
+    });
+    document.addEventListener("click", function (event) {
+      if (nav && !nav.contains(event.target)) closeMenu(false);
     });
   }
 
-  /* ────────── Reveal on scroll (robusto) ──────────
-     El contenido NUNCA puede quedar invisible:
-     1) CSS solo oculta .reveal si <html> tiene clase "js".
-     2) Sin IntersectionObserver o con movimiento reducido → todo visible.
-     3) Si el observer está roto/bloqueado (0 revelados en 3 s) → todo visible.
-     4) Cualquier error → todo visible. */
-  var revealEls = Array.prototype.slice.call(document.querySelectorAll(".reveal"));
-  function revealAll() {
-    revealEls.forEach(function (el) { el.classList.add("is-visible"); });
-  }
-  try {
-    if ("IntersectionObserver" in window && !reducedMotion) {
-      var revealedCount = 0;
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (en) {
-          if (en.isIntersecting) {
-            en.target.classList.add("is-visible");
-            io.unobserve(en.target);
-            revealedCount++;
-          }
-        });
-      }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
-      revealEls.forEach(function (el) { io.observe(el); });
-      setTimeout(function () {
-        if (revealedCount === 0) revealAll();
-      }, 3000);
-    } else {
-      revealAll();
-    }
-  } catch (e) {
-    revealAll();
-  }
-
-  /* ────────── Precio: toggle perpetua/suscripción ────────── */
-  var ptBtns = document.querySelectorAll(".pt-btn");
-  ptBtns.forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var plan = btn.getAttribute("data-plan");
-      ptBtns.forEach(function (b) {
-        var active = b === btn;
-        b.classList.toggle("is-active", active);
-        b.setAttribute("aria-pressed", active ? "true" : "false");
-      });
-      document.querySelectorAll(".price-card .amount[data-perp]").forEach(function (el) {
-        el.textContent = plan === "sub" ? el.getAttribute("data-sub") : el.getAttribute("data-perp");
-      });
-      document.querySelectorAll(".price-card .per").forEach(function (el) {
-        var v = plan === "sub" ? el.getAttribute("data-sub") : el.getAttribute("data-perp");
-        if (v) el.textContent = v;
-      });
-    });
-  });
-
-  /* ────────── Año footer ────────── */
   var yearEl = document.getElementById("year");
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());
 
@@ -566,24 +527,15 @@
   var bigCaption = document.getElementById("demoCaption");
   var bigState = null;
   var captions = {
-    rta: "Analizador LED de 1/3 de octava con picos retenidos (crema) — el clásico de consola, con verde, ámbar y rojo.",
-    spec: "Frecuencia (vertical) vs. tiempo (horizontal) en fósforo ámbar. Las líneas verticales brillantes son feedback: identifícalas en segundos.",
-    tf: "Magnitud (crema), fase (ámbar) y coherencia, como un trazador sobre papel milimetrado. Coherencia alta = medición confiable."
+    rta: "Ejemplo sintético: energía por bandas de 1/3 de octava y picos retenidos. No es una medición.",
+    spec: "Ejemplo sintético: la frecuencia se representa de abajo hacia arriba y el tiempo avanza a la derecha. No es una medición.",
+    tf: "Ejemplo sintético: magnitud en crema, fase en ámbar y coherencia en la franja inferior. No es una medición."
   };
-
-  document.querySelectorAll(".demo-tab").forEach(function (tab) {
-    tab.addEventListener("click", function () {
-      document.querySelectorAll(".demo-tab").forEach(function (t) {
-        t.classList.remove("is-active");
-        t.setAttribute("aria-selected", "false");
-      });
-      tab.classList.add("is-active");
-      tab.setAttribute("aria-selected", "true");
-      bigMode = tab.getAttribute("data-demo");
-      bigState = null;
-      if (bigCaption) bigCaption.textContent = captions[bigMode] || "";
-    });
-  });
+  var canvasLabels = {
+    rta: "Espectro de ejemplo por bandas con datos sintéticos",
+    spec: "Espectrograma de ejemplo con datos sintéticos",
+    tf: "Función de transferencia de ejemplo con datos sintéticos"
+  };
 
   function drawBig(time) {
     if (!bigCanvas) return;
@@ -606,61 +558,123 @@
     }
   }
 
-  /* ══════════ Tabs de la ventana consola ══════════ */
-  document.querySelectorAll(".app-tab").forEach(function (tab) {
-    tab.addEventListener("click", function () {
-      document.querySelectorAll(".app-tab").forEach(function (t) {
-        t.classList.remove("is-active");
-        t.setAttribute("aria-selected", "false");
+  /* Each tab group uses one reusable panel and supports the standard keyboard keys. */
+  function connectTabs(selector, attribute, panelId, onSelect) {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll(selector));
+    var panel = document.getElementById(panelId);
+    function select(tab, focus) {
+      tabs.forEach(function (item) {
+        var active = item === tab;
+        item.classList.toggle("is-active", active);
+        item.setAttribute("aria-selected", String(active));
+        item.tabIndex = active ? 0 : -1;
       });
-      tab.classList.add("is-active");
-      tab.setAttribute("aria-selected", "true");
-      appMode = tab.getAttribute("data-mode");
-      if (appMode === "spec") appState = null;
+      if (panel) panel.setAttribute("aria-labelledby", tab.id);
+      onSelect(tab.getAttribute(attribute));
+      if (focus) tab.focus();
+    }
+    tabs.forEach(function (tab, index) {
+      tab.addEventListener("click", function () { select(tab, false); });
+      tab.addEventListener("keydown", function (event) {
+        var next;
+        if (event.key === "ArrowRight") next = (index + 1) % tabs.length;
+        else if (event.key === "ArrowLeft") next = (index + tabs.length - 1) % tabs.length;
+        else if (event.key === "Home") next = 0;
+        else if (event.key === "End") next = tabs.length - 1;
+        else return;
+        event.preventDefault();
+        select(tabs[next], true);
+      });
     });
+  }
+
+  connectTabs(".app-tab", "data-mode", "heroPanel", function (mode) {
+    appMode = mode;
+    appState = null;
+    if (appCanvas) appCanvas.setAttribute("aria-label", canvasLabels[mode]);
+    drawApp(performance.now());
+  });
+  connectTabs(".demo-tab", "data-demo", "demoPanel", function (mode) {
+    bigMode = mode;
+    bigState = null;
+    if (bigCaption) bigCaption.textContent = captions[mode];
+    if (bigCanvas) bigCanvas.setAttribute("aria-label", canvasLabels[mode]);
+    drawBig(performance.now());
   });
 
-  /* Lecturas LED de la barra de estado */
   var readF = document.getElementById("readoutF");
   var readL = document.getElementById("readoutL");
-  var readC = document.getElementById("readoutC");
   var freqs = [63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000];
-  setInterval(function () {
-    if (!appVisible() || document.hidden) return;
+  var lastReadout = 0;
+  function updateReadout(time) {
+    if (!appVisible() || time - lastReadout < 600) return;
+    lastReadout = time;
     var f = freqs[(Math.random() * freqs.length) | 0];
     if (readF) readF.textContent = f >= 1000 ? (f / 1000).toFixed(1) + " kHz" : f + " Hz";
-    if (readL) readL.textContent = (72 + Math.random() * 14).toFixed(1) + " dB SPL";
-    if (readC) readC.textContent = "ρ " + (0.88 + Math.random() * 0.11).toFixed(2);
-  }, 420);
+    if (readL) readL.textContent = (-(18 + Math.random() * 18)).toFixed(1) + " dB / SIM";
+  }
 
-  /* ══════════ Bucle principal ══════════ */
+  var hasCanvas = !!(appCanvas || bigCanvas || vuL || vuR || ctaCanvas);
+  function drawFrame(time, force) {
+    if (force || vuVisible()) drawHeroVU(time);
+    if (force || ctaVisible()) drawCTA(time);
+    if (force || appVisible()) drawApp(time);
+    if (force || bigVisible()) drawBig(time);
+    updateReadout(time);
+  }
   function loop(time) {
-    if (!document.hidden && !reducedMotion) {
-      if (vuVisible()) drawHeroVU(time);
-      if (ctaVisible()) drawCTA(time);
-      if (appVisible()) drawApp(time);
-      if (bigVisible()) drawBig(time);
+    animationFrame = null;
+    if (paused || document.hidden || !hasCanvas) return;
+    drawFrame(time, false);
+    animationFrame = requestAnimationFrame(loop);
+  }
+  function startAnimation() {
+    if (!paused && !document.hidden && hasCanvas && animationFrame === null) {
+      animationFrame = requestAnimationFrame(loop);
     }
-    requestAnimationFrame(loop);
   }
-  if (reducedMotion) {
-    drawHeroVU(16);
-    drawCTA(0);
-    drawApp(0);
-    drawBig(0);
-  } else {
-    requestAnimationFrame(loop);
+  var motionButton = document.getElementById("demoMotion");
+  function updateMotionButton() {
+    document.body.classList.toggle("is-paused", paused);
+    if (!motionButton) return;
+    motionButton.textContent = paused ? "Reanudar animación" : "Pausar animación";
+    motionButton.setAttribute("aria-pressed", String(paused));
   }
+  function setPaused(value) {
+    paused = value;
+    if (paused && animationFrame !== null) {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = null;
+    }
+    updateMotionButton();
+    startAnimation();
+  }
+  if (motionButton) motionButton.addEventListener("click", function () { setPaused(!paused); });
+  if (motionPreference && motionPreference.addEventListener) {
+    motionPreference.addEventListener("change", function (event) {
+      reducedMotion = event.matches;
+      setPaused(reducedMotion);
+    });
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden && animationFrame !== null) {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = null;
+    }
+    startAnimation();
+  });
+  updateMotionButton();
+  if (hasCanvas) drawFrame(16, true);
+  startAnimation();
 
   var resizeTimer;
   window.addEventListener("resize", function () {
+    if (window.innerWidth > 980) closeMenu(false);
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
       appState = null;
       bigState = null;
-      if (reducedMotion) {
-        drawHeroVU(16); drawCTA(0); drawApp(0); drawBig(0);
-      }
+      if (hasCanvas) drawFrame(performance.now(), true);
     }, 180);
   });
 })();

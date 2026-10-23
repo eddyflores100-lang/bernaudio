@@ -17,7 +17,7 @@
     /* Ajusta canvas a DPR; devuelve {ctx, w, h} lógicos */
     fitCanvas(cv) {
       const dpr = global.devicePixelRatio || 1;
-      const w = cv.clientWidth, h = cv.clientHeight;
+      const w = Math.max(240, cv.clientWidth), h = Math.max(160, cv.clientHeight);
       if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
         cv.width = Math.max(1, Math.round(w * dpr));
         cv.height = Math.max(1, Math.round(h * dpr));
@@ -44,105 +44,124 @@
       return v.toFixed(digits === undefined ? 1 : digits);
     },
   };
+  BAU.download = (name, data, type) => {
+    const url = URL.createObjectURL(new Blob([data], { type }));
+    const a = document.createElement('a'); a.href = url; a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  };
   BAU.yToPx = (v, vMin, vMax, h) => h - ((v - vMin) / (vMax - vMin)) * h;
   global.BAU = BAU;
 
   /* ════════════════ MÓDULO SPL ════════════════ */
   const SPL = {
-    hist: [], histMax: 240, // 2 muestras/s × 120 s
-    msFast: null, msSlow: null, leqPower: null, leqN: 0,
-    lMin: Infinity, lMax: -Infinity, peakZMax: -Infinity,
-    lastHistT: 0,
-
+    hist: [], histTimes: [], histMax: 240, msFast: null, msSlow: null,
+    leqPower: 0, leqN: 0, durationSeconds: 0,
+    lMin: Infinity, lMax: -Infinity, peakZMax: -Infinity, lastHistT: 0, lastRawDb: null,
     el: {},
     init() {
       ['splNow', 'splNowL', 'splLeq', 'splMax', 'splMin', 'splPeak', 'splWeight', 'splSpeed', 'splReset', 'splExport', 'cvSplHist']
-        .forEach((id) => (this.el[id] = document.getElementById(id)));
-      // etiqueta real del Peak (Z, dominio tiempo)
-      const lbl = this.el.splPeak.parentElement.querySelector('.l');
-      if (lbl) lbl.textContent = 'Peak (Z)';
+        .forEach(id => this.el[id] = document.getElementById(id));
       this.el.splReset.addEventListener('click', () => this.reset());
       this.el.splExport.addEventListener('click', () => this.exportCsv());
+      this.el.splWeight.addEventListener('change', () => this.reset());
+      this.el.splSpeed.addEventListener('change', () => this.reset());
     },
     reset() {
-      this.msFast = this.msSlow = this.leqPower = null;
-      this.leqN = 0; this.lMin = Infinity; this.lMax = -Infinity; this.peakZMax = -Infinity; this.hist = [];
+      this.msFast = this.msSlow = null; this.leqPower = 0; this.leqN = 0; this.durationSeconds = 0;
+      this.lMin = Infinity; this.lMax = -Infinity; this.peakZMax = -Infinity;
+      this.hist = []; this.histTimes = []; this.lastHistT = 0; this.lastRawDb = null;
     },
-    /* Exportación CSV del registro de niveles (paridad Smaart SPL log):
-       resumen Leq/Lmax/Lmin/Peak + serie temporal a 2 Hz */
+    onAudioStart() {
+      this.onAudioStop(); this.reset(); this._weightFilter = null; this._dc = null;
+      this._unsub = AE.onBlock((block, meta) => this.ingest(block, meta));
+    },
+    onAudioStop() { if (this._unsub) this._unsub(); this._unsub = null; },
+    // Integrate captured audio time, never the number of animation frames.
+    ingest(block, meta = {}) {
+      if (!block.length) return;
+      const sr = meta.sampleRate || AE.sampleRate, dt = block.length / sr;
+      const S = global.BA_STATE, weighting = this.el.splWeight.value;
+      let peak = 0, p = 0;
+      for (const v of block) peak = Math.max(peak, Math.abs(v));
+      let weighted = block;
+      if (weighting !== 'Z') {
+        if (!this._weightFilter || this._weightFilter.sampleRate !== sr || this._weightFilter.weighting !== weighting)
+          this._weightFilter = new global.LevelMeter.WeightingFilter(sr, weighting);
+        weighted = this._weightFilter.processBlock(block);
+      } else {
+        // A gentle continuous 1 Hz DC blocker preserves audible Z-band energy.
+        // Never subtract each callback's mean: that invents steps at low frequencies.
+        if (!this._dc || this._dc.sr !== sr) this._dc = { sr, x: 0, y: 0, pole: Math.exp(-2 * Math.PI / sr) };
+        const state = this._dc, b0 = (1 + state.pole) / 2;
+        weighted = new Float64Array(block.length);
+        for (let i = 0; i < block.length; i++) {
+          const y = b0 * (block[i] - state.x) + state.pole * state.y;
+          state.x = block[i]; state.y = y; weighted[i] = y;
+        }
+      }
+      p = weighted.reduce((energy, v) => energy + v * v, 0) / block.length;
+      if (S.micCalOn) {
+        const n = DSP.nextPow2(block.length);
+        if (!this._spec || this._spec.n !== n || this._spec.len !== block.length) {
+          // A rectangular energy window preserves transients at callback boundaries.
+          const win = new Float64Array(n); win.fill(1, 0, block.length);
+          this._spec = { n, len: block.length, fft: new DSP.FFT(n), win,
+            samples: new Float64Array(n), re: new Float64Array(n), im: new Float64Array(n), out: new Float64Array(n / 2 + 1) };
+        }
+        const t = this._spec; t.samples.fill(0);
+        for (let i = 0; i < block.length; i++) t.samples[i] = weighted[i];
+        DSP.powerSpectrumDb(t.samples, t.fft, t.win, t.re, t.im, t.out);
+        p = 0;
+        for (let k = 0; k < t.out.length; k++) {
+          const f = k * sr / n;
+          p += Math.pow(10, (t.out[k] + S.micCalDb(f)) / 10);
+        }
+      }
+      this.lastRawDb = DSP.dbFromPower(p);
+      p *= Math.pow(10, S.cal / 10);
+      const af = Math.exp(-dt / .125), as = Math.exp(-dt);
+      this.msFast = this.msFast == null ? p : af * this.msFast + (1 - af) * p;
+      this.msSlow = this.msSlow == null ? p : as * this.msSlow + (1 - as) * p;
+      this.leqPower += p * dt; this.durationSeconds += dt; this.leqN++;
+      const level = DSP.dbFromPower(this.el.splSpeed.value === 'slow' ? this.msSlow : this.msFast);
+      if (isFinite(level)) { this.lMin = Math.min(this.lMin, level); this.lMax = Math.max(this.lMax, level); }
+      this.peakZMax = Math.max(this.peakZMax, DSP.dbFromAmp(peak) + S.cal);
+      this.lastHistT += dt;
+      if (this.lastHistT >= .5) {
+        this.lastHistT %= .5; this.hist.push(level); this.histTimes.push(this.durationSeconds);
+        if (this.hist.length > this.histMax) { this.hist.shift(); this.histTimes.shift(); }
+      }
+    },
+    snapshot() {
+      return { weighting: this.el.splWeight.value, response: this.el.splSpeed.value,
+        durationSeconds: this.durationSeconds,
+        leqDb: this.durationSeconds ? DSP.dbFromPower(this.leqPower / this.durationSeconds) : null,
+        minDb: isFinite(this.lMin) ? this.lMin : null, maxDb: isFinite(this.lMax) ? this.lMax : null,
+        peakDb: isFinite(this.peakZMax) ? this.peakZMax : null,
+        calibrated: !!global.BA_STATE.calibrated, offsetDb: global.BA_STATE.cal,
+        history: this.hist.map((value, i) => ({ seconds: this.histTimes[i], db: value })) };
+    },
     exportCsv() {
-      const wSel = this.el.splWeight.value;
-      const spd = this.el.splSpeed.value === 'slow' ? 'Slow' : 'Fast';
-      const f = (v, d) => (isFinite(v) ? v.toFixed(d == null ? 1 : d) : '--');
-      const rows = [];
-      rows.push('# BernAudio - Registro SPL (Alicelabs LLC)');
-      rows.push('# fecha,' + new Date().toISOString());
-      rows.push('# ponderacion,' + wSel + ' · velocidad,' + spd + ' · cal dBFS->dB SPL,' + global.BA_STATE.cal);
-      rows.push('# LAeq,' + f(this.leqN ? DSP.dbFromPower(this.leqPower / this.leqN) : NaN, 2));
-      rows.push('# Lmax,' + f(this.lMax, 2) + ',Lmin,' + f(this.lMin, 2) + ',PeakZ,' + f(this.peakZMax, 2));
-      rows.push('t_s,nivel_dB' + wSel);
-      for (let i = 0; i < this.hist.length; i++) rows.push((i * 0.5).toFixed(1) + ',' + (isFinite(this.hist[i]) ? this.hist[i].toFixed(2) : ''));
-      if (!this.hist.length) rows.push('0.0,(sin datos — el registro se llena mientras el módulo SPL está activo)');
-      const blob = new Blob(['\uFEFF' + rows.join('\n')], { type: 'text/csv;charset=utf-8' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'bernaudio_spl_' + Date.now() + '.csv';
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      global.UI.setStatus('SPL exportado a CSV (' + this.hist.length + ' muestras)');
+      const s = this.snapshot();
+      if (!s.durationSeconds) { global.UI.setStatus('Inicia la captura antes de exportar el registro.'); return; }
+      const f = v => v == null || !isFinite(v) ? '' : v.toFixed(3);
+      const rows = ['# BernAudio · Alicelabs LLC', '# fecha,' + new Date().toISOString(),
+        '# ponderacion,' + s.weighting + ',respuesta,' + s.response,
+        '# nivel,' + (s.calibrated ? 'calibración declarada por usuario' : 'estimado sin calibrar'),
+        '# duracion_s,' + f(s.durationSeconds) + ',offset_db,' + s.offsetDb,
+        '# L' + s.weighting + 'eq,' + f(s.leqDb) + ',Lmax,' + f(s.maxDb) + ',Lmin,' + f(s.minDb) + ',PeakZ,' + f(s.peakDb),
+        't_s,nivel_dB' + s.weighting];
+      s.history.forEach(row => rows.push(f(row.seconds) + ',' + f(row.db)));
+      BAU.download('bernaudio_spl.csv', '\uFEFF' + rows.join('\n'), 'text/csv;charset=utf-8');
+      global.UI.setStatus('Registro SPL exportado.');
     },
-    /* Potencia total ponderada desde freqDb (dB/bin) */
-    totalPower(weightDb) {
-      const cal = global.BA_STATE.cal;
-      const calFn = global.BA_STATE.micCalDb;
-      let p = 0;
-      const binHz = AE.sampleRate / AE.fftSize;
-      for (let i = 1; i < AE.freqDb.length; i++) {
-        const f = i * binHz;
-        if (f < 20 || f > 20000) continue;
-        const l = AE.freqDb[i] + cal + calFn(f) + (weightDb ? weightDb(f) : 0);
-        p += Math.pow(10, l / 10);
-      }
-      return p;
-    },
-    tick(dtMs) {
-      if (!AE.poll()) return;
-      const wSel = this.el.splWeight.value;
-      const wf = wSel === 'A' ? DSP.aWeightDb : wSel === 'C' ? DSP.cWeightDb : null;
-
-      const p = this.totalPower(wf);
-      const aF = Math.exp(-dtMs / 125), aS = Math.exp(-dtMs / 1000);
-      this.msFast = this.msFast == null ? p : aF * this.msFast + (1 - aF) * p;
-      this.msSlow = this.msSlow == null ? p : aS * this.msSlow + (1 - aS) * p;
-      this.leqPower = this.leqPower == null ? p : this.leqPower + p;
-      this.leqN++;
-
-      const useFast = this.el.splSpeed.value === 'fast';
-      const level = DSP.dbFromPower(useFast ? this.msFast : this.msSlow);
-      if (isFinite(level)) {
-        this.lMin = Math.min(this.lMin, level);
-        this.lMax = Math.max(this.lMax, level);
-      }
-
-      /* Peak dominio tiempo (Z) */
-      const pk = DSP.dbFromAmp(AE.peak()) + global.BA_STATE.cal;
-      if (isFinite(pk)) this.peakZMax = Math.max(this.peakZMax, pk);
-
-      /* Readouts */
-      const set = (id, v) => { this.el[id].textContent = isFinite(v) ? v.toFixed(1) : '--'; };
-      set('splNow', level);
-      set('splLeq', DSP.dbFromPower(this.leqPower / this.leqN));
-      set('splMax', this.lMax); set('splMin', this.lMin); set('splPeak', pk);
-      this.el.splNow.className = 'v' + (level > 100 ? ' hot' : level > 85 ? ' warn' : '');
-      this.el.splNowL.textContent = 'dB' + wSel + ' · ' + (useFast ? 'Fast' : 'Slow');
-
-      /* Historial 2 Hz */
-      this.lastHistT += dtMs;
-      if (this.lastHistT >= 500) {
-        this.lastHistT = 0;
-        this.hist.push(level);
-        if (this.hist.length > this.histMax) this.hist.shift();
-      }
+    tick() {
+      const s = this.snapshot(), set = (id, v) => this.el[id].textContent = v == null || !isFinite(v) ? '--' : v.toFixed(1);
+      set('splNow', this.msFast == null ? null : DSP.dbFromPower(s.response === 'slow' ? this.msSlow : this.msFast));
+      set('splLeq', s.leqDb); set('splMax', s.maxDb); set('splMin', s.minDb); set('splPeak', s.peakDb);
+      this.el.splNowL.textContent = 'dB' + s.weighting + ' · ' + s.response + (s.calibrated ? '' : ' · estimado');
+      const label = document.getElementById('splLeqLabel');
+      if (label) label.textContent = 'L' + s.weighting + 'eq · ' + s.durationSeconds.toFixed(1) + ' s';
       this.drawHist();
     },
     drawHist() {
@@ -193,8 +212,9 @@
         .forEach((id) => (this.el[id] = document.getElementById(id)));
       this.el.rtaRes.addEventListener('change', () => this.rebuild());
       this.el.rtaMotor.addEventListener('change', () => this.rebuild());
+      this.el.rtaWeight.addEventListener('change', () => this.rebuild());
       this.el.rtaAvg.addEventListener('change', () => { this.avgN = +this.el.rtaAvg.value; });
-      this.el.rtaPeak.addEventListener('change', () => { this.peakMode = this.el.rtaPeak.value; this.peaks = null; });
+      this.el.rtaPeak.addEventListener('change', () => { this.peakMode = this.el.rtaPeak.value; this.peaks = new Float64Array(this.bands.length).fill(-Infinity); });
       this.el.rtaSaveCurve.addEventListener('click', () => this.saveCurve());
       this.el.rtaClearCurves.addEventListener('click', () => { this.curves = []; });
       this.rebuild();
@@ -217,7 +237,8 @@
       const nPerOct = +this.el.rtaRes.value;
       const fmax = Math.min(20000, AE.sampleRate / 2 * 0.92);
       this.bands = DSP.octaveBands(nPerOct, 20, fmax);
-      this.disp = new Float64Array(this.bands.length);
+      this.disp = new Float64Array(this.bands.length).fill(NaN);
+      this.curves = []; this.ringSamples = 0;
       this.peaks = new Float64Array(this.bands.length).fill(-Infinity);
       this.engine = this.resolveEngine();
       if (this.engine === 'analyser') {
@@ -234,6 +255,7 @@
       }
       this.ring = null; this.ringPos = 0; this.ringSR = 0;
       this._floor = 0;
+      if (this.turbo) this.turbo.lastMs = 0;
     },
     _ensureRing() {
       const N = this.engine;
@@ -243,11 +265,14 @@
         this.ringSR = AE.sampleRate;
       }
     },
+    onAudioStart() { this.rebuild(); this._ensureSub(); },
+    onAudioStop() { if (this._unsub) this._unsub(); this._unsub = this._feedFn = null; },
     _feed(b0) {
       try {
         if (this.engine === 'analyser') return;
         this._ensureRing();
         const N = this.ring.length;
+        this.ringSamples = (this.ringSamples || 0) + b0.length;
         for (let i = 0; i < b0.length; i++) {
           this.ring[this.ringPos] = b0[i];
           this.ringPos = (this.ringPos + 1) % N;
@@ -264,7 +289,7 @@
     },
     onFftChange() { this.rebuild(); },
     saveCurve() {
-      if (!this.bands.length) return;
+      if (!this.bands.length || !this.disp.some(Number.isFinite)) return;
       this.curves.push({ bands: this.bands.map((b) => b.fc), lv: Float64Array.from(this.disp) });
       if (this.curves.length > 4) this.curves.shift();
     },
@@ -286,32 +311,33 @@
       } else {
         const t = this.turbo;
         this._ensureRing();
+        if (this.ringSamples < t.N) { this.draw(); return; }
         const now = performance.now();
         const interval = t.N >= 262144 ? 250 : 100; // ms entre FFT largas
         if (!t.lastMs || now - t.lastMs >= interval) {
           t.lastMs = now;
           const N = t.N, r = this.ring, pos = this.ringPos;
           for (let i = 0; i < N; i++) t.buf[i] = r[(pos + i) % N];
-          DSP.fftSpectrumDb(t.buf, t.fft, t.win, t.re, t.im, t.out);
+          DSP.powerSpectrumDb(t.buf, t.fft, t.win, t.re, t.im, t.out);
         }
         freqDb = t.out;
         binHz = AE.sampleRate / t.N;
       }
 
-      const lv = DSP.bandLevels(freqDb, binHz, this.bands, cal, wf);
+      const correctedWeight = f => (wf ? wf(f) : 0) + global.BA_STATE.micCalDb(f);
+      const lv = DSP.bandLevels(freqDb, binHz, this.bands, cal, correctedWeight);
       /* piso de validez: sin bins suficientes la banda se muestra vacía */
       const floor = DSP.octFloor(+this.el.rtaRes.value, binHz);
       this._floor = floor;
-      /* curva de calibración del micro aplicada al centro de cada banda */
-      const calFn = global.BA_STATE.micCalDb;
+      /* La curva del micrófono se aplica por bin antes de sumar energía. */
       for (let i = 0; i < lv.length; i++) {
         if (this.bands[i].fc < floor) { lv[i] = NaN; continue; }
-        if (calFn) lv[i] += calFn(this.bands[i].fc);
       }
       const alpha = 1 / this.avgN;
       for (let i = 0; i < lv.length; i++) {
-        const p = isFinite(lv[i]) ? Math.pow(10, lv[i] / 10) : 0;
-        const prev = Math.pow(10, this.disp[i] / 10);
+        if (!isFinite(lv[i])) { this.disp[i] = NaN; this.peaks[i] = -Infinity; continue; }
+        const p = Math.pow(10, lv[i] / 10);
+        const prev = isFinite(this.disp[i]) ? Math.pow(10, this.disp[i] / 10) : p;
         this.disp[i] = DSP.dbFromPower(prev + alpha * (p - prev));
         /* peak hold */
         if (this.peakMode !== 'off' && isFinite(this.disp[i])) {
@@ -460,13 +486,13 @@
 
       const cal = global.BA_STATE.cal;
       const calFn = global.BA_STATE.micCalDb;
-      /* escala del espectrograma en dB SPL: techo (130 por defecto) y rango (80)
-         → piso 50 dB SPL: el promedio de trabajo (90 dB) queda al centro */
+      /* Potencia por bin FFT con offset de nivel; no es SPL de banda completa. */
       const top = +this.el.spTop.value;
       const range = +this.el.spRange.value;
       const bottom = top - range;
       const binHz = AE.sampleRate / AE.fftSize;
       const nb = AE.freqDb.length;
+      const fmax = Math.min(this.fmax, AE.sampleRate / 2);
       const H = h, W = this.off.width;
       const fmin = 20;
 
@@ -480,13 +506,12 @@
 
       for (let y = 0; y < H; y++) {
         const frac = 1 - y / H; // abajo = graves
-        const f = fmin * Math.pow(this.fmax / fmin, frac);
+        const f = fmin * Math.pow(fmax / fmin, frac);
         const bin = f / binHz;
         const i0 = Math.min(nb - 1, Math.floor(bin));
         const t = bin - i0;
         /* dBFS → dB SPL (cal de nivel + curva de calibración del micro) */
-        const v = AE.freqDb[i0] * (1 - t) + AE.freqDb[Math.min(nb - 1, i0 + 1)] * t
-          + cal + calFn(f);
+        const v = DSP.dbFromPower((1 - t) * Math.pow(10, AE.freqDb[i0] / 10) + t * Math.pow(10, AE.freqDb[Math.min(nb - 1, i0 + 1)] / 10)) + cal + calFn(f);
         let norm = (v - bottom) / range;           // 0..1
         norm = DSP.clamp(norm, 0, 1);
         const ci = Math.round(norm * 255) * 3;
@@ -508,23 +533,12 @@
       ctx.strokeStyle = 'rgba(255,255,255,0.14)';
       ctx.lineWidth = 1;
       [50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].forEach((f) => {
-        if (f > this.fmax) return;
-        const frac = Math.log(f / fmin) / Math.log(this.fmax / fmin);
+        if (f > fmax) return;
+        const frac = Math.log(f / fmin) / Math.log(fmax / fmin);
         const yy = (1 - frac) * H;
         ctx.beginPath(); ctx.moveTo(padL, yy); ctx.lineTo(padL + plotW, yy); ctx.stroke();
         ctx.fillText(f >= 1000 ? (f / 1000) + 'k' : f.toFixed(0), 6, yy + 3);
       });
-      /* línea de referencia 90 dB SPL (promedio de trabajo) */
-      const yRef = (1 - (90 - bottom) / range) * H;
-      if (yRef > 0 && yRef < H) {
-        ctx.strokeStyle = 'rgba(245,176,76,0.5)';
-        ctx.setLineDash([4, 4]);
-        ctx.beginPath(); ctx.moveTo(padL, yRef); ctx.lineTo(padL + plotW, yRef); ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = 'rgba(245,176,76,0.75)';
-        ctx.fillText('90 dB prom', 6, yRef - 3);
-      }
-
       /* ── barra de magnitud (escala completa de color) ── */
       const cbX = padL + plotW + 12, cbW = 9;
       const grad = ctx.createLinearGradient(0, 0, 0, H);
@@ -553,13 +567,13 @@
         ctx.stroke();
         ctx.setLineDash([]);
         const frac = 1 - this._my / H;
-        const fRead = fmin * Math.pow(this.fmax / fmin, frac);
+        const fRead = fmin * Math.pow(fmax / fmin, frac);
         const bin = fRead / binHz;
         const i0 = Math.min(nb - 1, Math.floor(bin));
         const t = bin - i0;
-        const dbRead = AE.freqDb[i0] * (1 - t) + AE.freqDb[Math.min(nb - 1, i0 + 1)] * t + cal + calFn(fRead);
+        const dbRead = DSP.dbFromPower((1 - t) * Math.pow(10, AE.freqDb[i0] / 10) + t * Math.pow(10, AE.freqDb[Math.min(nb - 1, i0 + 1)] / 10)) + cal + calFn(fRead);
         const txt = (fRead >= 1000 ? (fRead / 1000).toFixed(2) + ' kHz' : fRead.toFixed(0) + ' Hz')
-          + ' · ' + dbRead.toFixed(1) + ' dB';
+          + ' · ahora ' + dbRead.toFixed(1) + ' dB/bin';
         ctx.font = '11px JetBrains Mono, monospace';
         const tw = ctx.measureText(txt).width;
         let tx = this._mx + 8;

@@ -19,6 +19,7 @@
         const S = global.BA_STATE;
         S.micCalOn = this.el.calApply.checked && !!S.micCal;
         try { localStorage.setItem('ba_miccal_on', S.micCalOn ? '1' : '0'); } catch (e) {}
+        this.changed();
         this.refreshInfo();
         this.draw();
       });
@@ -31,6 +32,7 @@
         } catch (e) {}
         this.el.calApply.checked = false;
         this.el.calFile.value = '';
+        this.changed();
         this.refreshInfo();
         this.draw();
       });
@@ -39,11 +41,16 @@
       this.refreshInfo();
     },
 
+    changed() {
+      global.BA_STATE.calibrated = false;
+      global.UI.calibrationChanged();
+    },
     onShow() { this.draw(); },
 
     loadFile() {
       const f = this.el.calFile.files && this.el.calFile.files[0];
       if (!f) return;
+      if (f.size > 1024 * 1024) { this.el.calInfo.textContent = 'Archivo demasiado grande (máximo 1 MB).'; return; }
       const reader = new FileReader();
       reader.onload = () => {
         const parsed = DSP.parseCalFile(String(reader.result));
@@ -62,15 +69,18 @@
           localStorage.setItem('ba_miccal_on', '1');
         } catch (e) { /* cuota llena: la curva queda solo en memoria */ }
         this.el.calApply.checked = true;
+        this.changed();
         this.refreshInfo();
         this.draw();
         global.UI.setStatus('calibración de micrófono cargada ✓');
       };
+      reader.onerror = () => { this.el.calInfo.textContent = 'No se pudo leer el archivo. Prueba con un archivo de texto local.'; };
       reader.readAsText(f);
     },
 
     refreshInfo() {
       const S = global.BA_STATE;
+      this.el.calExport.disabled = this.el.calRemove.disabled = this.el.calApply.disabled = !S.micCal;
       if (!S.micCal) { this.el.calInfo.textContent = 'sin archivo'; return; }
       const f = S.micCal.freqs;
       this.el.calInfo.textContent =

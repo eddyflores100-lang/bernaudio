@@ -1,216 +1,105 @@
-# BernAudio 🎛️
+# BernAudio Model 80
 
-> **Medición y alineación de audio profesional en tiempo real.**
-> El análisis de audio profesional, al alcance de todos.
+Herramientas web de análisis de audio y simulación de arreglos de subgraves.
+HTML, CSS y JavaScript, con procesamiento de audio local mediante Web Audio.
 
-Landing + **app web funcional** de **BernAudio** — la plataforma de medición acústica
-en tiempo real para diseñar, afinar y monitorear sistemas de sonido en Windows, macOS,
-Linux e iPad.
+- [Analizador de audio](app.html)
+- [Simulador de subgraves](subs.html)
+- [Sitio publicado](https://bernaudio.utalabs.tech)
 
-![BernAudio](assets/og.png)
+## Herramientas
 
-## 🌐 BernAudio Web (app incluida en este repo)
+| Módulo | Uso y límites |
+| --- | --- |
+| RTA | Espectro por bandas, promediado y picos de la entrada seleccionada. |
+| Espectrograma | Evolución de frecuencia y nivel, dibujada en Canvas 2D. |
+| SPL | Fast/Slow y Leq integrados sobre el tiempo de audio capturado. El nivel absoluto requiere calibrar toda la cadena con una referencia conocida. |
+| Transferencia | Magnitud, fase y coherencia con referencia interna o referencia cableada al canal 2. |
+| Delay Finder | Estimación temporal con capturas secuenciales o dos entradas independientes. Revisa la correlación antes de interpretar el resultado. |
+| Impulso | Estimación mediante barrido; sensible al ruido, la latencia y el procesamiento del dispositivo. |
+| Corrección del micrófono | Importación de curva de frecuencia. La curva no calibra por sí sola el nivel SPL absoluto. |
+| Generador | Ruido, tono y barrido. Empieza con un nivel de salida bajo. |
+| Arreglos de subgraves | Modelo de fuentes puntuales con mapas, polar y delays. No incluye la respuesta completa de cajas ni de salas. |
 
-**[▶ Lanzar la app](app.html)** — corre 100% en tu navegador (GitHub Pages sirve HTTPS,
-requisito para acceder al micrófono). Sin registro, sin instalación.
+La portada muestra una **simulación con datos sintéticos**. Abre `app.html` para
+analizar una entrada real y `subs.html` para configurar una simulación de subgraves.
 
-**[🧉 Diseñador de arreglos de subs](subs.html)** — módulo web independiente, también gratis:
+## Ejecutar localmente
 
-| Vista | Qué hace |
-|-------|----------|
-| **6 arreglos** | Línea recta, arco electrónico (steering), arco físico, end-fired, gradiente de 2 filas y stack invertido |
-| **Mapa SPL** | Suma coherente de fuentes puntuales (1/r + delay + polaridad) por frecuencia o banda ancha 40–125 Hz, normalizado a 0 dB |
-| **Polar 360°** | Directividad real del arreglo en círculo completo, escala −30…0 dB |
-| **Ondas animadas** | Interferencia en el dominio del tiempo (ralentizada 4.5×) para ver cómo suman y cancelan |
-| **Tabla de delays** | ms, muestras @48/96 kHz y polaridad por caja, lista para tipear en tu DSP y exportable a CSV |
-| **Física ajustable** | Temperatura → velocidad del sonido (331.3 + 0.606·T), preset λ/4, frecuencias 31–125 Hz |
-
-> Verificado numéricamente: gradiente a λ/4 ≈ 29 dB de rechazo trasero,
-> end-fired 4× ≈ 26 dB, línea de 6 ≈ +15.4 dB de acople frontal.
-
-| Módulo | Qué hace |
-|--------|----------|
-| **SPL** | Nivel sonoro con ponderación A/C/Z, respuesta Fast/Slow, LAeq acumulado, Lmin/Lmax, pico, historial de 120 s, calibración por offset y **exportación CSV del registro** (resumen Leq/Lmax/Lmin/Peak + serie 2 Hz) |
-| **RTA** | Analizador de 1/1 hasta 1/48 de octava (ANSI base 2) con motor FFT extendido (Turbo 64K–256K), piso de validez por bin, ponderación A/C/Z, promediado 1–16, peak-hold (decaimiento o fijo), FFT hasta 32K y hasta 4 curvas guardadas |
-| **Espectrograma** | Cascada en tiempo real con eje logarítmico, escala completa de magnitud (barra de color dB) + crosshair de lectura (ratón/táctil), 4 colormaps, rango dinámico y techo ajustables |
-| **Función de transferencia** | Magnitud, fase y coherencia con referencia interna (ruido rosa) o **canal 2 por cable loopback** (modo pro 2 canales). Delay automático por correlación cruzada + **ajuste fino ±20 ms**, **inversión de polaridad**, suavizado 1/6–1/12 oct, **trazas A/B/C para comparar dos o más fuentes** y **exportación CSV (f·mag·fase·coherencia) y PNG** |
-| **Delay Finder** | **Tiempo de delay entre dos fuentes sonoras**: modo 1 micro secuencial A→B (ideal iPad) o modo 2 micros en vivo (interfaz estéreo). Δt, Δdistancia, confianza y recomendación de a qué fuente añadir el delay |
-| **Impulso (IR)** | Medición por barrido logarítmico (método Farina) con deconvolución Wiener, delay en ms/metros, **RT60 con EDT/T20/T30 (ISO 3382) y claridad C50/C80**, exportación WAV |
-| **Calibración** | **Carga el archivo de corrección del micrófono (.cal/.csv/.txt/.frd) sin pistófono**: curva aplicada en vivo a SPL, RTA, espectrograma y TF; persistente en el navegador y exportable a CSV |
-| **Generador** | Ruido rosa/blanco, seno variable, barrido log 3–20 s, nivel −60…0 dB y monitor de salida |
-
-**Motor DSP propio** (`js/app/dsp.js`): FFT radix-2 validada contra DFT directa,
-ponderaciones IEC 61672 (A/C), bandas de octava base-2, ventanas Hann/Blackman-Harris,
-deconvolución regularizada, RT60 por integración inversa de Schroeder, correlación
-cruzada FFT con signo verificado (delay finder/TF) e interpolación logarítmica de
-curvas de calibración. 40 tests unitarios en Node (`scripts/test-dsp.js`).
-
-## 🖥️📱 Plataformas
-
-- **Computador (modo Pro con hardware)** — Windows/macOS/Linux (Chrome, Edge, Firefox):
-  interfaz de audio USB 2×2, `Canales = 2`, y para TF de doble canal clásica un cable de
-  **loopback** de la salida a la entrada 2 con `Referencia = Canal 2`. Dos micros de medición
-  → Delay Finder en vivo entre fuentes.
-- **iPad** — Safari (iPadOS 15+) o Chrome iOS: micrófono interno del iPad o micrófono
-  externo / interfaz USB-C·Lightning clase compatible (se selecciona en `Entrada`).
-  Toda la suite funciona igual; el Delay Finder secuencial 1 micro es ideal para iPad.
-
-> ⚠️ **Nota de precisión**: el navegador aplica procesado al micrófono que BernAudio
-> desactiva (`echoCancellation:false, noiseSuppression:false, autoGainControl:false`),
-> pero la cadena de audio del sistema no es de grado instrumento. Para lectura SPL
-> absoluta, carga la curva de calibración de tu micrófono y ajusta el offset con un
-> calibrador acústico (todo se guarda en tu navegador). Para alineación relativa
-> (delay, fase, EQ) funciona de maravilla.
-
-## ✨ Características de la plataforma
-
-| Motor | Descripción |
-|-------|-------------|
-| **RTA** | 1/1 hasta 1/48 de octava · motor FFT Turbo 64K–256K · promediado espacial |
-| **Espectrograma** | Mapa de calor continuo acelerado por GPU hasta 192 kHz |
-| **Función de transferencia** | Magnitud, fase y coherencia · doble ventana FFT · MTW |
-| **Impulse Response** | LIFFT integrado para delay y análisis de reflexiones |
-| **Sync inalámbrico** | Transfer function sincronizada sin cable de referencia |
-| **SPL remoto** | Logging multicanal + webviewer en vivo incluido |
-| **Asistente IA** | Sugerencias de delay, ganancia y EQ justificadas |
-| **Colaboración cloud** | Sesiones multiusuario en tiempo real |
-
-## 🗂️ Estructura del repositorio
-
-```
-bernaudio/
-├── index.html          # Landing completa (una sola página)
-├── app.html            # BernAudio Web — app de medición funcional
-├── subs.html           # Diseñador de arreglos de subs (nuevo módulo web)
-├── privacy.html        # Política de privacidad (BA-PRV-01)
-├── terms.html          # Términos de uso y licencia EULA (BA-TRM-01)
-├── licencias.html      # Licencias y marcas: MIT, EULA, terceros (BA-LIC-01)
-├── css/
-│   ├── styles.css      # Sistema de diseño consola 80s (landing)
-│   ├── app.css         # Estilos de la app
-│   ├── subs.css        # Estilos del diseñador de arreglos
-│   └── legal.css       # Estilos de documentos legales (manual 80s)
-├── js/
-│   ├── main.js         # Motores de visualización canvas (landing)
-│   ├── subarray.js     # Motor de física de arreglos de subs (mapa/polar/ondas)
-│   ├── subarray-ui.js  # Cableado de UI del diseñador
-│   └── app/
-│       ├── dsp.js          # Motor DSP (FFT, ponderaciones, bandas, IR, RT60, xcorr, cal)
-│       ├── audio-engine.js # AudioContext, micrófono 1/2 canales, taps de bloques
-│       ├── modules-spl.js  # SPL · RTA · Espectrograma (con cal de micro aplicada)
-│       ├── modules-tf.js   # Generador · Transferencia (trazas/loopback) · Impulso
-│       ├── modules-delay.js# Delay Finder (1 micro secuencial / 2 micros en vivo)
-│       ├── modules-cal.js  # Calibración de micrófono por archivo
-│       └── ui.js           # Pestañas, calibración, canales, arranque
-├── assets/
-│   ├── logo.svg        # Logotipo horizontal
-│   ├── favicon.svg     # Ícono del sitio
-│   ├── og.png          # Imagen Open Graph 1200×630
-│   └── og.svg          # Versión vectorial
-├── 404.html            # Página de error amigable
-├── deploy.sh           # Script de publicación automática en GitHub Pages
-├── .nojekyll           # Sirve los archivos tal cual (sin procesamiento Jekyll)
-└── README.md
-```
-
-## 🌍 Dominio propio
-
-El sitio se sirve bajo el dominio personalizado **[https://bernaudio.utalabs.tech](https://bernaudio.utalabs.tech)** (además de `https://eddyflores100-lang.github.io/bernaudio/`, que redirige al dominio propio).
-
-- El archivo **`CNAME`** en la raíz del repo declara el dominio: `bernaudio.utalabs.tech`.
-- La configuración de **Settings → Pages → Custom domain** del repositorio apunta a ese dominio.
-- En el proveedor DNS de `utalabs.tech`, el subdominio se declara con un registro **CNAME**:
-  `bernaudio CNAME eddyflores100-lang.github.io.`
-  (alternativa: registros A a las IPs de GitHub Pages `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`).
-- HTTPS queda activado con el certificado automático de Let's Encrypt que GitHub Pages emite tras propagar el DNS.
-
-## ⚖️ Documentación legal
-
-- **[Política de privacidad](privacy.html)** (DOC. BA-PRV-01): procesamiento 100 % local del audio, sin telemetría, sin cookies de seguimiento, sin recopilación de datos personales. `localStorage` solo guarda preferencias (calibración del micrófono, ajustes) en tu dispositivo.
-- **[Términos de uso y EULA](terms.html)** (DOC. BA-TRM-01): licencia de uso (personal, educativa y comercial permitida), restricciones de marca, garantía limitada, limitación de responsabilidad y aviso expreso de que BernAudio **no es un sonómetro certificado** (IEC 61672 / ANSI S1.4).
-- Ambos documentos están enlazados desde el footer completo de todas las páginas (incluido el app y la página 404) con la atribución **“Hecho por Alicelabs LLC”**.
-
-## 🚀 Publicar en GitHub Pages (elige una vía)
-
-### Vía A — Sin terminal (2 minutos, la más fácil)
-
-1. Descarga **`bernaudio-github-pages.zip`** y descomprímelo.
-2. Entra a [github.com/new](https://github.com/new) → nombre **`bernaudio`** → Público → **Create repository**.
-3. En la página del repo nuevo, pulsa **«uploading an existing file»** (o *Add file → Upload files*) y **arrastra todo el contenido** de la carpeta descomprimida → **Commit changes**.
-4. Ve a **Settings → Pages** → *Branch*: **`main`** + **`/ (root)`** → **Save**.
-5. En 1–2 minutos vive en: `https://TU-USUARIO.github.io/bernaudio/`
-
-### Vía B — Script automático (1 comando, hace todo)
+No hace falta compilar la aplicación. Desde la raíz del repositorio:
 
 ```bash
-cd bernaudio
-bash deploy.sh
-```
-
-El script pide tu usuario y un token PAT, y se encarga de **crear el repo,
-subir el código y activar GitHub Pages** automáticamente.
-
-> 🔑 Para el token: abre [github.com/settings/tokens/new?scopes=repo](https://github.com/settings/tokens/new?scopes=repo),
-> ponle descripción *BernAudio*, marca el scope **`repo`** y genera. Pégalo cuando
-> el script lo pida (entrada oculta). El token **no queda guardado** en ninguna parte.
-
-### Vía C — Manual con git
-
-1. Crea el repositorio **`bernaudio`** en GitHub (sin README inicial).
-
-2. Sube el contenido de esta carpeta a la rama `main`:
-
-   ```bash
-   cd bernaudio
-   git init
-   git add .
-   git commit -m "feat: landing inicial de BernAudio"
-   git branch -M main
-   git remote add origin https://github.com/TU-USUARIO/bernaudio.git
-   git push -u origin main
-   ```
-
-3. Ve a **Settings → Pages**.
-4. En *Source* elige **Deploy from a branch**, rama **`main`**, carpeta **`/ (root)`** y guarda.
-5. En 1–2 minutos tu landing estará viva en:
-
-   ```
-   https://TU-USUARIO.github.io/bernaudio/
-   ```
-
-> 💡 El archivo `.nojekyll` ya está incluido para que GitHub Pages sirva
-> los archivos estáticos sin procesarlos con Jekyll.
-
-## 🛠️ Desarrollo local
-
-No necesitas dependencias. Cualquier servidor estático funciona:
-
-```bash
-# Python
 python3 -m http.server 8080
-
-# Node
-npx serve .
 ```
 
-Abre `http://localhost:8080` en tu navegador.
+Abre `http://localhost:8080`. El micrófono necesita HTTPS o localhost y permiso del
+usuario. No abras la app directamente mediante `file://`.
 
-## 🎨 Sistema de diseño
+Para comprobar el proyecto con Node.js y npm:
 
-- **Fondo:** `#06080C` (dark premium)
-- **Acento principal:** teal `#FFA23E`
-- **Acento secundario:** ámbar `#F5B04C`
-- **Tipografías:** Space Grotesk (títulos) · Inter (cuerpo)
-- Las visualizaciones del hero, la demo y el CTA son **canvas reales** (RTA, espectrograma y función de transferencia simulados), no videos ni GIFs.
+```bash
+npm test
+```
 
-## 📄 Licencia
+La aplicación se puede servir en un alojamiento estático. Para GitHub Pages, el
+contenido está en la raíz y `CNAME` contiene el dominio personalizado. Cambia ese
+archivo si publicas una copia en otro dominio.
 
-MIT — ver [LICENSE](LICENSE). Titular del copyright: **Alicelabs LLC** (BernAudio™).
-La licencia cubre el código; las marcas (BernAudio, Model 80, Alicelabs) requieren
-permiso aparte. Detalles completos, marcas de terceros y créditos de componentes en
-la página [licencias.html](https://bernaudio.utalabs.tech/licencias.html) (DOC. BA-LIC-01).
+## Preparar una medición
 
+1. Selecciona la entrada y comprueba que la señal no satura.
+2. Carga la curva del micrófono si está disponible; calibra por separado el nivel
+   si necesitas interpretar SPL absoluto.
+3. Para transferencia de dos canales, conecta una referencia por cable al canal 2
+   y verifica que el navegador entrega entradas independientes.
+4. Empieza las señales de prueba con poco nivel y verifica la salida física antes
+   de aumentarlo.
+5. Contrasta los resultados y conserva las exportaciones que necesites.
 
----
+La selección de dispositivo, el número de canales, la frecuencia de muestreo, la
+latencia y el procesamiento automático dependen del navegador, el sistema y el
+hardware. Los dispositivos móviles pueden imponer límites adicionales.
+BernAudio no es un sonómetro certificado ni garantiza precisión instrumental.
 
-© 2026 Alicelabs LLC. Todos los derechos reservados. BernAudio™ es una marca de Alicelabs LLC.
+## Captura y exportaciones
+
+La captura utiliza `AudioWorklet` cuando está disponible. Si no puede cargarse,
+utiliza una ruta de compatibilidad con `ScriptProcessor` en el hilo principal;
+esta ruta puede ser más sensible a la carga de la interfaz. La app informa del
+motor activo y comprueba los canales reportados por la entrada antes de permitir
+los modos de dos canales. Seleccionar «2 canales» no garantiza que el dispositivo
+los entregue.
+
+Las lecturas aparecen como estimadas hasta que el usuario realiza o declara la
+calibración de nivel. Esa declaración debe revisarse al iniciar otra captura o
+cambiar la entrada o la ganancia. No es una certificación del instrumento.
+
+El CSV de SPL incluye la fecha de exportación, la duración medida, ponderación,
+respuesta temporal, offset, estado de calibración declarado y tiempos relativos
+de las muestras del historial. El informe de sesión JSON añade la frecuencia de
+muestreo, los canales, la ruta de captura y la curva de corrección disponible.
+
+## Datos y privacidad
+
+El código procesa las muestras en el navegador y no incorpora envío de audio ni
+mediciones a un servidor. La calibración de nivel y la curva del micrófono pueden
+persistir en `localStorage`; se eliminan borrando los datos del sitio. Las
+exportaciones se descargan al dispositivo.
+
+Cargar el sitio realiza solicitudes al alojamiento y a Google Fonts. No hay un
+modo de instalación sin conexión ni se garantiza la recarga sin red. Consulta
+[Privacidad](privacy.html), [Términos](terms.html) y [Licencias](licencias.html).
+
+## Código
+
+- `js/app/`: motor de audio, DSP y módulos del analizador.
+- `js/subarray.js` y `js/subarray-ui.js`: modelo y controles del simulador.
+- `js/main.js`: navegación y visualizaciones sintéticas de la portada.
+- `css/`: estilos de portada, aplicación, simulador y documentos legales.
+
+Reporta problemas en [GitHub Issues](https://github.com/eddyflores100-lang/bernaudio/issues)
+con navegador, sistema, interfaz y pasos para reproducirlos. No incluyas datos
+personales ni grabaciones sensibles en incidencias públicas.
+
+Código bajo [MIT](LICENSE), © 2026 Alicelabs LLC. La licencia no concede derechos
+sobre las marcas del proyecto; consulta el aviso de marca incluido en `LICENSE`.

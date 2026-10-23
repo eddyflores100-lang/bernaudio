@@ -1,11 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════
    BernAudio Subs — Motor de física para arreglos de subwoofers
    --------------------------------------------------------------
-   Modelo: suma coherente de fuentes puntuales (1/r) con delay,
-   polaridad y ganancia por caja, evaluado en rejilla para:
-     · Mapa SPL  : |Σ gᵢ·e^{-j(k·rᵢ+ω·τᵢ)}| / rᵢ  (1 o 6 frecuencias)
-     · Polar 360°: ídem sobre círculo de radio fijo
-     · Ondas     : Σ gᵢ·sen(ω·t − k·rᵢ − ω·τᵢ) / rᵢ  animado
+   Modelo ideal: fuentes puntuales omnidireccionales idénticas,
+   en campo libre. No incluye suelo, sala, filtros ni gabinetes.
+     · Presión: Σ pᵢ·e^{-j(k·rᵢ+ω·τᵢ)} / max(rᵢ, 0.5 m)
+     · Banda: promedio de potencias, coherente solo dentro de cada f
+     · Polar: factor de arreglo en campo lejano, normalizado
+     · Ondas: fase de la presión monofrecuencia, ralentizada
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
 
@@ -25,7 +26,8 @@
     temp: 20,
     broadband: false,
     showPositions: true,
-    view: 'map'
+    view: 'map',
+    animate: true
   };
 
   /* ---------- Derivados ---------- */
@@ -41,6 +43,7 @@
   let GW = 0, GH = 0, rMap = null;   // distancias por sub (mapa)
   let GW2 = 0, GH2 = 0, rWav = null; // distancias por sub (ondas)
   let mapDb = null;                  // Float32Array con dB normalizados (mapa)
+  let waveRe = null, waveIm = null;
   const RMIN = 0.5;
 
   /* ---------- Colormaps ---------- */
@@ -83,13 +86,39 @@
   /* ---------- Utilidades ---------- */
   const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
   const speedOfSound = t => 331.3 + 0.606 * t;
+  const analysisFrequencies = () => SA.broadband ? FREQS.slice() : [FREQS[SA.freqIdx]];
+  const relativeDb = (value, peak) => clamp(20 * Math.log10(Math.max(value / peak, 1e-12)), -30, 0);
+
+  // Different frequencies have no fixed mutual phase: combine their powers.
+  function meanPower(distances, frequencies, farField) {
+    let power = 0;
+    for (const f of frequencies) {
+      const w = 2 * Math.PI * f, k = w / c;
+      let re = 0, im = 0;
+      for (let i = 0; i < subs.length; i++) {
+        const s = subs[i], r = distances[i];
+        const phase = k * r + w * s.delayMs / 1000;
+        const amplitude = s.pol / (farField ? 1 : Math.max(RMIN, r));
+        re += amplitude * Math.cos(phase);
+        im -= amplitude * Math.sin(phase);
+      }
+      power += re * re + im * im;
+    }
+    return power / frequencies.length;
+  }
+
+  // Relative pressure units, with identical unit source strengths. This is not Pa/SPL.
+  function responseAt(x, y, frequencies = analysisFrequencies()) {
+    const distances = subs.map(s => Math.hypot(x - s.x, y - s.y));
+    return Math.sqrt(meanPower(distances, frequencies, false));
+  }
 
   /* ---------- Construcción del arreglo ---------- */
   function buildArray() {
     const s = [];
     const d = SA.spacing, N = SA.n;
     const push = (x, y, ms, pol, label) => s.push({
-      x, y, delayMs: Math.max(0, Math.round(ms * 1000) / 1000), pol, label
+      x, y, delayMs: Math.max(0, ms), pol, label
     });
     switch (SA.type) {
       case 'line':
@@ -114,7 +143,7 @@
         break;
       }
       case 'endfire':
-        for (let i = 0; i < N; i++) push(0, -i * d, ((N - 1) - i) * d / c * 1000, 1, 'S' + (i + 1));
+        for (let i = 0; i < N; i++) push(0, ((N - 1) / 2 - i) * d, ((N - 1) - i) * d / c * 1000, 1, 'S' + (i + 1));
         break;
       case 'grad': {
         const M = SA.perRow, s2 = SA.rowSep;
@@ -167,7 +196,7 @@
         for (let ix = 0; ix < gw; ix++) {
           const wx = view.x0 + ((ix + 0.5) / gw) * view.w;
           const dx = wx - sx;
-          rA[row + ix] = Math.max(RMIN, Math.sqrt(dx * dx + dy * dy));
+          rA[row + ix] = Math.sqrt(dx * dx + dy * dy);
         }
       }
     }
@@ -182,43 +211,26 @@
     GW2 = Math.round(GW * 0.62);
     GH2 = Math.round(GH * 0.62);
     rWav = allocGrid(GW2, GH2);
+    prepareWaves();
   }
 
-  /* ---------- Mapa SPL ---------- */
+  /* ---------- Mapa de nivel relativo ---------- */
   function computeMap() {
     if (!rMap) return;
-    const freqs = SA.broadband ? FREQS.slice(1) : [FREQS[SA.freqIdx]];
+    const freqs = analysisFrequencies();
     const cells = GW * GH;
-    const re = new Float64Array(cells), im = new Float64Array(cells);
-    for (let q = 0; q < freqs.length; q++) {
-      const f = freqs[q];
-      const k = 2 * Math.PI * f / c, w = 2 * Math.PI * f;
-      for (let s = 0; s < subs.length; s++) {
-        const sb = subs[s], rA = rMap[s];
-        const phd = w * sb.delayMs / 1000;
-        const g = sb.pol;
-        for (let cell = 0; cell < cells; cell++) {
-          const r = rA[cell];
-          const ph = phd + k * r;
-          const a = g / r;
-          re[cell] += a * Math.cos(ph);
-          im[cell] -= a * Math.sin(ph);
-        }
-      }
-    }
-    const energy = mapDb;
-    if (!energy || energy.length !== cells) mapDb = new Float32Array(cells);
+    if (!mapDb || mapDb.length !== cells) mapDb = new Float32Array(cells);
+    const distances = new Float64Array(subs.length);
     let mx = 1e-12;
     const eA = mapDb;
     for (let cell = 0; cell < cells; cell++) {
-      const m = Math.sqrt(re[cell] * re[cell] + im[cell] * im[cell]) / freqs.length;
+      for (let s = 0; s < subs.length; s++) distances[s] = rMap[s][cell];
+      const m = Math.sqrt(meanPower(distances, freqs, false));
       eA[cell] = m;
       if (m > mx) mx = m;
     }
-    const inv = 1 / mx;
     for (let cell = 0; cell < cells; cell++) {
-      const db = 20 * Math.log10(eA[cell] * inv + 1e-9);
-      eA[cell] = clamp((db + 30) / 30, 0, 1);
+      eA[cell] = relativeDb(eA[cell], mx);
     }
   }
 
@@ -227,7 +239,7 @@
     const img = ctx.createImageData(GW, GH);
     const px = img.data, eA = mapDb;
     for (let i = 0; i < eA.length; i++) {
-      const li = (eA[i] * 255) | 0;
+      const li = ((eA[i] + 30) / 30 * 255) | 0;
       const p = i * 4;
       px[p]     = LUT_SPL[li * 3];
       px[p + 1] = LUT_SPL[li * 3 + 1];
@@ -247,40 +259,32 @@
 
   /* ---------- Polar 360° ---------- */
   function computePolar() {
-    const f = FREQS[SA.freqIdx];
-    const k = 2 * Math.PI * f / c, w = 2 * Math.PI * f;
-    const diag = Math.hypot(bbox.maxX - bbox.minX, bbox.maxY - bbox.minY);
-    const Rp = Math.max(8, diag * 1.15);
+    const frequencies = analysisFrequencies();
     const M = 360;
     const mag = new Float64Array(M);
+    const distances = new Float64Array(subs.length);
     let mx = 1e-12;
     for (let i = 0; i < M; i++) {
       const th = i * Math.PI / 180;
-      const px = Math.sin(th) * Rp, py = Math.cos(th) * Rp;
-      let re = 0, im = 0;
+      // r_i ≈ R − s_i·u. Common propagation phase and 1/R cancel on normalization.
       for (let s = 0; s < subs.length; s++) {
-        const sb = subs[s];
-        const dx = px - sb.x, dy = py - sb.y;
-        const r = Math.max(RMIN, Math.sqrt(dx * dx + dy * dy));
-        const ph = w * sb.delayMs / 1000 + k * r;
-        const a = sb.pol / r;
-        re += a * Math.cos(ph);
-        im -= a * Math.sin(ph);
+        distances[s] = -subs[s].x * Math.sin(th) - subs[s].y * Math.cos(th);
       }
-      mag[i] = Math.sqrt(re * re + im * im);
+      mag[i] = Math.sqrt(meanPower(distances, frequencies, true));
       if (mag[i] > mx) mx = mag[i];
     }
     const norm = new Float64Array(M);
+    const db = new Float64Array(M);
     for (let i = 0; i < M; i++) {
-      const db = 20 * Math.log10(mag[i] / mx + 1e-9);
-      norm[i] = clamp((db + 30) / 30, 0, 1);
+      db[i] = relativeDb(mag[i], mx);
+      norm[i] = (db[i] + 30) / 30;
     }
-    return { norm, Rp, f };
+    return { norm, db, magnitude: mag, frequencies };
   }
 
   function drawPolar() {
     if (!ctx) return;
-    const { norm, Rp, f } = computePolar();
+    const { norm, frequencies } = computePolar();
     const cxm = cw / 2, cym = ch / 2 + 8;
     const Rmax = Math.min(cw, ch) * 0.42;
     const toXY = (i, rad) => {
@@ -334,42 +338,51 @@
     ctx.fillText('180° · atrás', cxm, cym + Rmax + 16);
     ctx.textAlign = 'left';
     ctx.fillStyle = 'rgba(179,169,143,.9)';
-    ctx.fillText(f + ' Hz · radio ' + Rp.toFixed(1) + ' m · ' + subs.length + ' cajas', 12, ch - 12);
+    const band = frequencies.length > 1 ? '31–125 Hz · media de potencias' : frequencies[0] + ' Hz';
+    ctx.fillText(band + ' · campo lejano · máx. 0 dB', 12, ch - 12);
   }
 
   /* ---------- Ondas animadas ---------- */
   const waves = { t: 0, running: false, raf: 0, last: 0, maxAmp: 1e-6 };
 
+  function prepareWaves() {
+    const f = FREQS[SA.freqIdx], w = 2 * Math.PI * f, k = w / c;
+    const cells = GW2 * GH2;
+    waveRe = new Float32Array(cells);
+    waveIm = new Float32Array(cells);
+    waves.maxAmp = 1e-12;
+    for (let cell = 0; cell < cells; cell++) {
+      let re = 0, im = 0;
+      for (let s = 0; s < subs.length; s++) {
+        const r = rWav[s][cell], sb = subs[s];
+        const phase = k * r + w * sb.delayMs / 1000;
+        const amplitude = sb.pol / Math.max(RMIN, r);
+        re += amplitude * Math.cos(phase);
+        im -= amplitude * Math.sin(phase);
+      }
+      waveRe[cell] = re;
+      waveIm[cell] = im;
+      waves.maxAmp = Math.max(waves.maxAmp, Math.hypot(re, im));
+    }
+  }
+
   function frameWaves(ts) {
-    if (!waves.running || !ctx || !rWav) return;
-    if (!waves.last) waves.last = ts;
-    const dt = Math.min(0.06, (ts - waves.last) / 1000);
-    waves.last = ts;
-    waves.t += dt * 0.22; // ralentizado ~4.5x para visualizar
+    if (!ctx || !waveRe) return;
+    if (waves.running) {
+      if (!waves.last) waves.last = ts;
+      const dt = Math.min(0.06, (ts - waves.last) / 1000);
+      waves.last = ts;
+      waves.t += dt * 0.75 * 2 * Math.PI; // 0.75 visual cycles/s, independent of f or display refresh.
+    }
 
     const f = FREQS[SA.freqIdx];
-    const k = 2 * Math.PI * f / c, w = 2 * Math.PI * f;
     const cells = GW2 * GH2;
     const img = ctx.createImageData(GW2, GH2);
     const px = img.data;
-    let peak = 1e-6;
-    const amp = new Float32Array(cells);
-    for (let s = 0; s < subs.length; s++) {
-      const sb = subs[s], rA = rWav[s];
-      const g = sb.pol;
-      const ph0 = w * (waves.t - sb.delayMs / 1000);
-      for (let cell = 0; cell < cells; cell++) {
-        amp[cell] += g * Math.sin(ph0 - k * rA[cell]) / rA[cell];
-      }
-    }
-    for (let cell = 0; cell < cells; cell++) {
-      const a = Math.abs(amp[cell]);
-      if (a > peak) peak = a;
-    }
-    waves.maxAmp = Math.max(peak, waves.maxAmp * 0.995);
+    const sine = Math.sin(waves.t), cosine = Math.cos(waves.t);
     const inv = 1 / waves.maxAmp;
     for (let i = 0; i < cells; i++) {
-      const v = clamp(amp[i] * inv, -1, 1);
+      const v = clamp((waveRe[i] * sine + waveIm[i] * cosine) * inv, -1, 1);
       const t = Math.abs(v);
       const lut = v >= 0 ? LUT_POS : LUT_NEG;
       const li = (t * 255) | 0;
@@ -387,16 +400,16 @@
     ctx.fillStyle = 'rgba(151,165,185,.85)';
     ctx.font = '10px Inter, sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText(f + ' Hz · tiempo ralentizado 4.5×', cw - 12, ch - 12);
+    ctx.fillText(f + ' Hz · fase ' + (waves.running ? 'ralentizada' : 'en pausa'), cw - 12, ch - 12);
     ctx.textAlign = 'left';
-    waves.raf = requestAnimationFrame(frameWaves);
+    if (waves.running) waves.raf = requestAnimationFrame(frameWaves);
   }
 
   function startWaves() {
     stopWaves();
-    waves.running = true;
+    waves.running = SA.animate && !document.hidden;
     waves.last = 0;
-    waves.raf = requestAnimationFrame(frameWaves);
+    frameWaves(0);
   }
   function stopWaves() {
     waves.running = false;
@@ -493,21 +506,21 @@
     c2.textAlign = 'right';
     const marks = [0, -10, -20, -30];
     for (const db of marks) {
-      const yy = ly + (db + 30) / 30 * lh;
+      const yy = ly + -db / 30 * lh;
       c2.fillText(db + ' dB', lx - 4, yy + 3);
     }
   }
 
   function drawMapInfo(c2) {
     const names = {
-      line: 'Línea recta', earc: 'Arco electrónico', farc: 'Arco físico',
-      endfire: 'End-fired', grad: 'Gradiente 2 filas', stack: 'Stack invertido'
+      line: 'Línea recta', earc: 'Puntería electrónica', farc: 'Arco físico',
+      endfire: 'End-fire', grad: 'Gradiente 2 filas', stack: 'Par gradiente'
     };
-    const f = SA.broadband
-      ? '40–125 Hz (banda ancha)'
+    const f = SA.broadband && SA.view !== 'waves'
+      ? '31–125 Hz · media de potencias'
       : FREQS[SA.freqIdx] + ' Hz';
     c2.fillStyle = 'rgba(6,10,15,.62)';
-    roundRect(c2, 10, 10, Math.min(240, cw - 70), 40, 8);
+    roundRect(c2, 10, 10, Math.min(300, cw - 24), 52, 8);
     c2.fill();
     c2.fillStyle = '#efe8d6';
     c2.font = '600 11px "Space Grotesk", Inter, sans-serif';
@@ -515,7 +528,8 @@
     c2.fillText(names[SA.type], 20, 26);
     c2.fillStyle = 'rgba(151,165,185,.95)';
     c2.font = '10px Inter, sans-serif';
-    c2.fillText(f + ' · c = ' + c.toFixed(1) + ' m/s · normalizado a 0 dB', 20, 41);
+    c2.fillText(f + ' · c = ' + c.toFixed(1) + ' m/s', 20, 41);
+    c2.fillText(SA.view === 'waves' ? 'Presión relativa · fase ilustrativa' : '0 dB = máximo de la rejilla visible', 20, 54);
   }
 
   /* ---------- Render despacho ---------- */
@@ -531,7 +545,6 @@
     else if (SA.view === 'waves') { startWaves(); }
   }
 
-  let computeTimer = 0;
   function recompute() {
     c = speedOfSound(SA.temp);
     lambda = c / FREQS[SA.freqIdx];
@@ -539,12 +552,7 @@
     computeBbox();
     fitView();
     rebuildGrids();
-    waves.maxAmp = 1e-6;
-    if (SA.view === 'waves') { render(); }
-    else {
-      clearTimeout(computeTimer);
-      render();
-    }
+    render();
   }
 
   /* ---------- API ---------- */
@@ -555,9 +563,12 @@
     get bbox() { return bbox; },
     get speed() { return c; },
     get lambda() { return lambda; },
+    responseAt,
+    polarResponse: computePolar,
     init(cv) {
       canvas = cv;
       ctx = canvas.getContext('2d');
+      if (!ctx) return false;
       dpr = Math.min(2, window.devicePixelRatio || 1);
       resize();
       if ('ResizeObserver' in window) {
@@ -569,6 +580,7 @@
         if (document.hidden) stopWaves();
         else if (SA.view === 'waves') startWaves();
       });
+      return true;
     },
     setView(v) {
       SA.view = v;
@@ -576,6 +588,10 @@
       recompute();
     },
     recompute,
+    setAnimation(enabled) {
+      SA.animate = Boolean(enabled);
+      if (SA.view === 'waves') startWaves();
+    },
     arraySize() {
       const aw = bbox.maxX - bbox.minX;
       const ah = bbox.maxY - bbox.minY;

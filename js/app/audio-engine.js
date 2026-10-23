@@ -1,174 +1,135 @@
-/* ═══════════════════════════════════════════════════════════════
-   BernAudio — audio-engine.js
-   Gestión de AudioContext, micrófono, analizador FFT y toques
-   (taps) de bloques para medición multicanal.
-   ═══════════════════════════════════════════════════════════════ */
+/* Local capture with verified hardware channels and context-frame timestamps. */
 (function (global) {
   'use strict';
-
   const AE = {
-    ctx: null,
-    stream: null,
-    srcNode: null,
-    analyser: null,
-    freqDb: null,      // Float32Array dB/bin (getFloatFrequencyData)
-    timeData: null,    // Float32Array forma de onda (getFloatTimeDomainData)
-    running: false,
-    noMic: false,
-    deviceId: null,
-    channels: 1,       // canales de entrada solicitados (1 o 2)
-    realChannels: 1,   // canales que entrega realmente el dispositivo
-    sampleRate: 48000,
-    fftSize: 8192,
-    _tap: null,
-    _mute: null,
-    _blockSubs: [],    // canal 0 (medición)
-    _ch1Subs: [],      // canal 1 (referencia loopback / 2º micro)
-
-    /* ── Permisos y arranque ── */
+    ctx: null, stream: null, analyser: null, srcNode: null, running: false, noMic: false,
+    deviceId: null, channels: 1, realChannels: 0, sampleRate: 48000, fftSize: 8192,
+    backend: 'detenido', sessionId: 0, frames: 0, clipped: false, settings: {},
+    _epoch: 0,
+    _aborted() { const error = new Error('Inicio cancelado.'); error.name = 'AbortError'; return error; },
+    _blockSubs: [], _ch1Subs: [], _pairSubs: [],
+    async _context(epoch) {
+      const Context = global.AudioContext || global.webkitAudioContext;
+      if (!Context) throw new Error('Este navegador no admite Web Audio.');
+      const ctx = new Context({ latencyHint: 'interactive' }); this.ctx = ctx;
+      this.sampleRate = this.ctx.sampleRate; this.sessionId++; this._workletReady = false;
+      if (this.ctx.audioWorklet && global.AudioWorkletNode) {
+        try { await this.ctx.audioWorklet.addModule('js/app/capture-worklet.js'); this._workletReady = true; }
+        catch (e) { console.warn('Captura compatible: AudioWorklet no disponible.', e); }
+      }
+      if (epoch !== this._epoch) { try { await ctx.close(); } catch (_) {} throw this._aborted(); }
+      this.ctx.onstatechange = () => {
+        if (global.UI && this.ctx && this.running && this.ctx.state !== 'running')
+          global.UI.setStatus('Audio suspendido — vuelve a pulsar Reanudar audio.');
+      };
+    },
     async start(deviceId, channels) {
-      if (this.running) await this.stop();
+      const stopping = this.stop(), epoch = this._epoch;
+      await stopping;
+      if (epoch !== this._epoch) throw this._aborted();
       this.channels = Math.max(1, Math.min(2, channels || 1));
-      const constraints = {
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          channelCount: { ideal: this.channels },
-        },
-      };
-      if (deviceId) constraints.audio.deviceId = { exact: deviceId };
-      this.stream = await navigator.mediaDevices.getUserMedia(constraints);
-      this.deviceId = deviceId || null;
-      this.noMic = false;
-
-      this.ctx = new (global.AudioContext || global.webkitAudioContext)({
-        latencyHint: 'interactive',
-      });
-      if (this.ctx.state === 'suspended') await this.ctx.resume();
-      this.sampleRate = this.ctx.sampleRate;
-
-      this.srcNode = this.ctx.createMediaStreamSource(this.stream);
-      this.analyser = this.ctx.createAnalyser();
-      this.analyser.fftSize = this.fftSize;
-      this.analyser.smoothingTimeConstant = 0; // promediado manual
-      this.freqDb = new Float32Array(this.analyser.frequencyBinCount);
-      this.timeData = new Float32Array(this.analyser.fftSize);
-
-      /* Tap de bloques crudos (para TF, IR y delay finder) */
-      this._tap = this.ctx.createScriptProcessor(4096, this.channels, 1);
-      this._mute = this.ctx.createGain();
-      this._mute.gain.value = 0;
-      this._tap.onaudioprocess = (e) => {
-        if (!this.running) return;
-        const nCh = Math.min(this.channels, e.inputBuffer.numberOfChannels);
-        this.realChannels = nCh;
-        const b0 = new Float32Array(e.inputBuffer.getChannelData(0));
-        for (const fn of this._blockSubs) {
-          try { fn(b0); } catch (err) { console.error('[tap ch0]', err); }
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('El micrófono requiere HTTPS o localhost y un navegador compatible.');
+      const audio = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: { ideal: this.channels } };
+      if (deviceId) audio.deviceId = { exact: deviceId };
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio });
+        if (epoch !== this._epoch) { stream.getTracks().forEach(t => t.stop()); throw this._aborted(); }
+        this.stream = stream;
+        const track = this.stream.getAudioTracks()[0];
+        this.settings = track.getSettings ? track.getSettings() : {};
+        this.realChannels = Math.min(this.channels, Math.max(1, this.settings.channelCount || 1));
+        this.deviceId = deviceId || null;
+        await this._context(epoch);
+        if (epoch !== this._epoch) throw this._aborted();
+        await this.ctx.resume();
+        if (epoch !== this._epoch) throw this._aborted();
+        this.srcNode = this.ctx.createMediaStreamSource(this.stream);
+        this.analyser = this.ctx.createAnalyser(); this.analyser.smoothingTimeConstant = 0;
+        this.setFftSize(this.fftSize);
+        this._splitter = this.ctx.createChannelSplitter(Math.max(2, this.realChannels));
+        this.srcNode.connect(this._splitter); this._splitter.connect(this.analyser, 0);
+        this._mute = this.ctx.createGain(); this._mute.gain.value = 0;
+        if (this._workletReady) {
+          this.backend = 'AudioWorklet';
+          this._tap = new global.AudioWorkletNode(this.ctx, 'bernaudio-capture', {
+            numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1],
+            channelCount: this.realChannels, channelCountMode: 'explicit', channelInterpretation: 'discrete',
+            processorOptions: { blockSize: 2048 }
+          });
+          this._tap.port.onmessage = e => this._dispatch(e.data.channels[0], e.data.channels[1] || null, e.data.startFrame);
+        } else {
+          this.backend = 'Compatibilidad (hilo principal)';
+          this._tap = this.ctx.createScriptProcessor(4096, this.realChannels, 1);
+          this._tap.onaudioprocess = e => {
+            const b0 = new Float32Array(e.inputBuffer.getChannelData(0));
+            const b1 = this.realChannels > 1 ? new Float32Array(e.inputBuffer.getChannelData(1)) : null;
+            this._dispatch(b0, b1, Math.round((e.playbackTime - b0.length / this.sampleRate) * this.sampleRate));
+          };
         }
-        if (nCh > 1) {
-          const b1 = new Float32Array(e.inputBuffer.getChannelData(1));
-          for (const fn of this._ch1Subs) {
-            try { fn(b1); } catch (err) { console.error('[tap ch1]', err); }
-          }
-        }
-      };
-
-      this.srcNode.connect(this.analyser);
-      this.srcNode.connect(this._tap);
-      this._tap.connect(this._mute);
-      this._mute.connect(this.ctx.destination);
-
-      this.running = true;
-      return this.sampleRate;
+        this.srcNode.connect(this._tap); this._tap.connect(this._mute); this._mute.connect(this.ctx.destination);
+        this.frames = 0; this.noMic = false; this.running = true;
+        track.addEventListener?.('ended', () => {
+          if (this.running && epoch === this._epoch && global.UI) global.UI.shutdown('Micrófono desconectado — vuelve a iniciar con otra entrada.');
+        });
+        return this.sampleRate;
+      } catch (e) { if (epoch === this._epoch) await this.stop(); throw e; }
     },
-
+    _dispatch(b0, b1, startFrame) {
+      if (!this.running || !b0) return;
+      const meta = { startFrame, sampleRate: this.sampleRate, sessionId: this.sessionId };
+      this.frames += b0.length; this.clipped = b0.some(v => Math.abs(v) >= 0.999);
+      const send = (subs, ...args) => { for (const fn of [...subs]) { try { fn(...args); } catch (e) { console.error('Procesamiento de audio:', e); } } };
+      send(this._blockSubs, b0, meta);
+      if (this.realChannels > 1 && b1) { send(this._ch1Subs, b1, meta); send(this._pairSubs, b0, b1, meta); }
+    },
     async stop() {
+      this._epoch++;
       this.running = false;
-      this._blockSubs = [];
-      this._ch1Subs = [];
-      this.realChannels = 1;
-      if (this.stream) { this.stream.getTracks().forEach((t) => t.stop()); this.stream = null; }
-      if (this._tap) { this._tap.onaudioprocess = null; try { this._tap.disconnect(); } catch (e) {} this._tap = null; }
-      if (this.srcNode) { try { this.srcNode.disconnect(); } catch (e) {} this.srcNode = null; }
-      if (this.analyser) { try { this.analyser.disconnect(); } catch (e) {} this.analyser = null; }
-      if (this._mute) { try { this._mute.disconnect(); } catch (e) {} this._mute = null; }
-      if (this.ctx) { try { await this.ctx.close(); } catch (e) {} this.ctx = null; }
+      if (this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream = null; }
+      if (this._tap) {
+        if (this._tap.port) { this._tap.port.onmessage = null; this._tap.port.close(); }
+        this._tap.onaudioprocess = null;
+      }
+      for (const key of ['_tap', '_splitter', 'srcNode', 'analyser', '_mute']) { try { this[key]?.disconnect(); } catch (_) {} this[key] = null; }
+      const ctx = this.ctx; this.ctx = null;
+      if (ctx) ctx.onstatechange = null;
+      this._blockSubs = []; this._ch1Subs = []; this._pairSubs = [];
+      this.realChannels = 0; this.frames = 0; this.clipped = false; this.backend = 'detenido';
+      if (ctx) try { await ctx.close(); } catch (_) {}
     },
-
-    /* ── Contexto sin micrófono (solo generador) ── */
     async startCtxOnly() {
-      if (this.running) await this.stop();
-      this.ctx = new (global.AudioContext || global.webkitAudioContext)({
-        latencyHint: 'interactive',
-      });
-      /* resume() puede quedar pendiente sin gesto de usuario (autoplay policy):
-         no bloqueamos el arranque — el navegador reanuda el contexto en el
-         próximo clic al iniciar el generador */
-      if (this.ctx.state === 'suspended') {
-        try {
-          await Promise.race([
-            this.ctx.resume(),
-            new Promise((r) => setTimeout(r, 1500)),
-          ]);
-        } catch (e) { console.warn('[AE] ctx.resume pendiente de gesto:', e && e.message); }
-      }
-      this.sampleRate = this.ctx.sampleRate;
-      this.noMic = true;
-      this.realChannels = 0;
-      return this.sampleRate;
+      const stopping = this.stop(), epoch = this._epoch;
+      await stopping;
+      if (epoch !== this._epoch) throw this._aborted();
+      try {
+        await this._context(epoch);
+        if (epoch !== this._epoch) throw this._aborted();
+        await this.ctx.resume();
+        if (epoch !== this._epoch) throw this._aborted();
+      } catch (e) { if (epoch === this._epoch) await this.stop(); throw e; }
+      this.noMic = true; this.realChannels = 0; return this.sampleRate;
     },
-
-    /* ── Lista de entradas ── */
     async inputs() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return [];
-      const devs = await navigator.mediaDevices.enumerateDevices();
-      return devs.filter((d) => d.kind === 'audioinput');
+      if (!navigator.mediaDevices?.enumerateDevices) return [];
+      return (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
     },
-
-    /* ── FFT ── */
     setFftSize(n) {
-      this.fftSize = n;
-      if (this.analyser) {
-        this.analyser.fftSize = n;
-        this.freqDb = new Float32Array(this.analyser.frequencyBinCount);
-        this.timeData = new Float32Array(n);
-      }
+      if (![2048, 4096, 8192, 16384, 32768].includes(n)) throw new Error('Tamaño FFT no válido.');
+      this.fftSize = n; if (this.analyser) this.analyser.fftSize = n;
+      this.freqDb = new Float64Array(n / 2 + 1).fill(-Infinity); this.timeData = new Float32Array(n);
+      this._fft = new global.DSP.FFT(n); this._win = global.DSP.hannWindow(n);
+      this._re = new Float64Array(n); this._im = new Float64Array(n);
     },
-
-    /* Llenar freqDb / timeData (llamar 1× por frame desde el módulo activo) */
     poll() {
-      if (!this.running) return false;
-      this.analyser.getFloatFrequencyData(this.freqDb);
+      if (!this.running || !this.analyser) return false;
       this.analyser.getFloatTimeDomainData(this.timeData);
-      return true;
+      global.DSP.powerSpectrumDb(this.timeData, this._fft, this._win, this._re, this._im, this.freqDb); return true;
     },
-
-    /* ── Suscripción a bloques del mic (canal 0) ── */
-    onBlock(fn) {
-      this._blockSubs.push(fn);
-      return () => { this._blockSubs = this._blockSubs.filter((f) => f !== fn); };
-    },
-
-    /* Suscripción al canal 1 (requiere modo 2 canales + interfaz estéreo) */
-    onBlockCh1(fn) {
-      this._ch1Subs.push(fn);
-      return () => { this._ch1Subs = this._ch1Subs.filter((f) => f !== fn); };
-    },
-
-    /* RMS de la forma de onda actual */
-    rms() {
-      let s = 0;
-      for (let i = 0; i < this.timeData.length; i++) s += this.timeData[i] * this.timeData[i];
-      return Math.sqrt(s / this.timeData.length);
-    },
-    peak() {
-      let p = 0;
-      for (let i = 0; i < this.timeData.length; i++) { const a = Math.abs(this.timeData[i]); if (a > p) p = a; }
-      return p;
-    },
+    onBlock(fn) { this._blockSubs.push(fn); return () => { this._blockSubs = this._blockSubs.filter(f => f !== fn); }; },
+    onBlockCh1(fn) { this._ch1Subs.push(fn); return () => { this._ch1Subs = this._ch1Subs.filter(f => f !== fn); }; },
+    onPairBlock(fn) { this._pairSubs.push(fn); return () => { this._pairSubs = this._pairSubs.filter(f => f !== fn); }; },
+    rms() { return Math.sqrt(this.timeData.reduce((s, v) => s + v * v, 0) / this.timeData.length); },
+    peak() { return this.timeData.reduce((p, v) => Math.max(p, Math.abs(v)), 0); }
   };
-
   global.AE = AE;
 })(window);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BernAudio Web — Medición acústica en vivo · Alicelabs LLC</title>
+  <title>BernAudio — Instrumentos de audio · Alicelabs LLC</title>
   <meta name="description" content="SPL, RTA hasta 1/48 de octava con motor FFT extendido, espectrograma completo, delay finder entre fuentes, función de transferencia con ajuste de tiempo y fase, calibración de micrófono por archivo e IR. En tu navegador, gratis: computador con hardware e iPad." />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -16,9 +16,9 @@
   <noscript><div style="background:#7F1D1D;color:#fff;padding:14px 18px;font-family:sans-serif;text-align:center">BernAudio Web necesita JavaScript para medir. Actívalo en tu navegador y recarga la página.</div></noscript>
 
   <!-- ── Overlay de inicio (gesto de usuario para getUserMedia) ── -->
-  <div class="overlay" id="overlay">
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="startTitle">
     <div class="start-card">
-      <h1>Bern<em>Audio</em> Web</h1>
+      <div class="eyebrow">ALICELABS LLC / INSTRUMENTOS DE AUDIO</div><h1 id="startTitle">Bern<em>Audio</em></h1>
       <p>Suite de medición acústica en tiempo real: SPL, RTA, espectrograma,
       delay finder entre fuentes, función de transferencia (tiempo y fase),
       respuesta al impulso, calibración de micrófono por archivo y generador de señales.</p>
@@ -28,12 +28,13 @@
       </div>
       <p class="hint" style="margin-top:10px"><b>🎙️ Micrófono</b> = BernAudio solo escucha, no emite señal.<br>
       <b>🎛️ Generador</b> = tú inicias la señal (rosa/sweep/seno) y los altavoces la reproducen para medir.</p>
-      <div class="error-box" id="startError"></div>
+      <div class="error-box" id="startError" role="alert"></div>
       <p class="hint">Usa auriculares o controla el volumen para evitar acoples.<br>
       <b>Consejo:</b> desactiva mejoras de sonido del sistema para medir con precisión.</p>
     </div>
   </div>
 
+  <div id="workspace" inert>
   <!-- ── Barra superior ── -->
   <header class="topbar">
     <a class="brand" href="index.html" title="Volver a la landing">
@@ -44,21 +45,21 @@
       </svg>
       <span class="brand-name">Bern<em>Audio</em></span><span class="brand-sub">by Alicelabs</span>
     </a>
-    <span class="badge-beta">Web Beta</span>
+    <span class="badge-beta">Web · local</span>
     <div class="spacer"></div>
     <div class="tb-group">
-      <span class="tb-label">Entrada</span>
+      <label class="tb-label" for="selInput">Entrada</label>
       <select id="selInput"><option value="">Micrófono predeterminado</option></select>
     </div>
     <div class="tb-group">
-      <span class="tb-label">Canales</span>
+      <label class="tb-label" for="selChannels">Canales</label>
       <select id="selChannels" title="1 = mono (mic interno o externo) · 2 = estéreo (interfaz USB: loopback o 2 micros)">
         <option value="1" selected>1 (mono)</option>
         <option value="2">2 (estéreo)</option>
       </select>
     </div>
     <div class="tb-group">
-      <span class="tb-label">FFT</span>
+      <label class="tb-label" for="selFft">FFT vista</label>
       <select id="selFft">
         <option value="2048">2048</option>
         <option value="4096">4096</option>
@@ -68,34 +69,38 @@
       </select>
     </div>
     <div class="tb-group">
-      <span class="tb-label">Cal</span>
-      <input type="range" id="calOffset" min="70" max="130" step="0.5" value="94" style="width:90px" title="dB SPL correspondientes a 0 dBFS (calibrador acústico)" />
+      <label class="tb-label" for="calOffset">Offset</label>
+      <input type="range" id="calOffset" min="0" max="180" step="0.1" value="94" style="width:90px" title="dB SPL correspondientes a 0 dBFS (calibrador acústico)" />
       <span class="chip" id="calChip" title="dB SPL correspondientes a 0 dBFS">94.0 dB</span>
     </div>
+    <button class="btn btn-sm" id="btnResume">Reanudar audio</button>
+    <button class="btn btn-sm" id="btnSession">Informe de sesión</button>
     <button class="btn btn-danger btn-sm" id="btnStop">■ Detener</button>
   </header>
 
   <!-- ── Pestañas ── -->
-  <nav class="tabs" id="tabs">
-    <button class="tab active" data-mod="spl">SPL</button>
-    <button class="tab" data-mod="rta">RTA</button>
-    <button class="tab" data-mod="spectro">Espectrograma</button>
-    <button class="tab" data-mod="tf">Transferencia</button>
-    <button class="tab" data-mod="delay">Delay Finder</button>
-    <button class="tab" data-mod="ir">Impulso</button>
-    <button class="tab" data-mod="gen">Generador</button>
-    <button class="tab" data-mod="cal">Calibración</button>
-    <button class="tab" data-mod="help">Ayuda</button>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Instrumentos de medición">
+    <button class="tab active" data-mod="spl" id="tab-spl" role="tab" aria-controls="mod-spl" aria-selected="true" tabindex="0">SPL</button>
+    <button class="tab" data-mod="rta" id="tab-rta" role="tab" aria-controls="mod-rta" aria-selected="false" tabindex="-1">RTA</button>
+    <button class="tab" data-mod="spectro" id="tab-spectro" role="tab" aria-controls="mod-spectro" aria-selected="false" tabindex="-1">Espectrograma</button>
+    <button class="tab" data-mod="tf" id="tab-tf" role="tab" aria-controls="mod-tf" aria-selected="false" tabindex="-1">Transferencia</button>
+    <button class="tab" data-mod="delay" id="tab-delay" role="tab" aria-controls="mod-delay" aria-selected="false" tabindex="-1">Delay Finder</button>
+    <button class="tab" data-mod="ir" id="tab-ir" role="tab" aria-controls="mod-ir" aria-selected="false" tabindex="-1">Impulso</button>
+    <button class="tab" data-mod="gen" id="tab-gen" role="tab" aria-controls="mod-gen" aria-selected="false" tabindex="-1">Generador</button>
+    <button class="tab" data-mod="cal" id="tab-cal" role="tab" aria-controls="mod-cal" aria-selected="false" tabindex="-1">Calibración</button>
+    <button class="tab" data-mod="help" id="tab-help" role="tab" aria-controls="mod-help" aria-selected="false" tabindex="-1">Ayuda</button>
   </nav>
 
+  <div class="measurement-notice" id="levelNotice" role="status">Nivel estimado, sin calibrar. Ajusta Calibración antes de interpretar valores absolutos.</div>
+  <p class="hardware-note" id="hardwareNotice">Entrada 1 = medición · Entrada 2 = referencia cableada.</p>
   <main>
     <!-- ── SPL ── -->
-    <section class="module active" id="mod-spl">
+    <section class="module active" id="mod-spl" role="tabpanel" aria-labelledby="tab-spl">
       <div class="controls">
-        <div class="ctl"><label>Ponderación</label>
+        <div class="ctl"><label for="splWeight">Ponderación</label>
           <select id="splWeight"><option value="A">A</option><option value="C">C</option><option value="Z">Z</option></select>
         </div>
-        <div class="ctl"><label>Respuesta</label>
+        <div class="ctl"><label for="splSpeed">Respuesta</label>
           <select id="splSpeed"><option value="fast">Fast (125 ms)</option><option value="slow">Slow (1 s)</option></select>
         </div>
         <div class="ctl"><button class="btn btn-sm" id="splReset">Reiniciar Leq/min/max</button></div>
@@ -103,72 +108,74 @@
       </div>
       <div class="readouts">
         <div class="ro big"><div class="v" id="splNow">--</div><div class="l" id="splNowL">dBA · Fast</div></div>
-        <div class="ro"><div class="v" id="splLeq">--</div><div class="l">LAeq (acum.)</div></div>
+        <div class="ro"><div class="v" id="splLeq">--</div><div class="l" id="splLeqLabel">LAeq · 0.0 s</div></div>
         <div class="ro"><div class="v" id="splMax">--</div><div class="l">Lmax</div></div>
         <div class="ro"><div class="v" id="splMin">--</div><div class="l">Lmin</div></div>
-        <div class="ro"><div class="v" id="splPeak">--</div><div class="l">Peak C</div></div>
+        <div class="ro"><div class="v" id="splPeak">--</div><div class="l">Peak Z máximo</div></div>
       </div>
-      <div class="panel"><div class="panel-title">Historial 120 s</div><canvas id="cvSplHist"></canvas></div>
+      <div class="panel"><div class="panel-title">Historial 120 s</div><canvas id="cvSplHist" role="img" aria-label="Historial de nivel"></canvas></div>
     </section>
 
     <!-- ── RTA ── -->
-    <section class="module" id="mod-rta">
+    <section class="module" id="mod-rta" role="tabpanel" aria-labelledby="tab-rta">
       <div class="controls">
-        <div class="ctl"><label>Resolución</label>
+        <div class="ctl"><label for="rtaRes">Resolución</label>
           <select id="rtaRes"><option value="1">1/1 oct</option><option value="3" selected>1/3 oct</option><option value="6">1/6 oct</option><option value="12">1/12 oct</option><option value="24">1/24 oct</option><option value="48">1/48 oct</option></select>
         </div>
-        <div class="ctl"><label>Motor FFT</label>
+        <div class="ctl"><label for="rtaMotor">Motor FFT</label>
           <select id="rtaMotor"><option value="auto" selected>Auto</option><option value="analyser">Analyser</option><option value="65536">Turbo 64K</option><option value="131072">Turbo 128K</option><option value="262144">Turbo 256K</option></select>
         </div>
-        <div class="ctl"><label>Ponderación</label>
+        <div class="ctl"><label for="rtaWeight">Ponderación</label>
           <select id="rtaWeight"><option value="Z">Z</option><option value="A">A</option><option value="C">C</option></select>
         </div>
-        <div class="ctl"><label>Promediado</label>
+        <div class="ctl"><label for="rtaAvg">Promediado</label>
           <select id="rtaAvg"><option value="1">1</option><option value="2">2</option><option value="4">4</option><option value="8" selected>8</option><option value="16">16</option></select>
         </div>
-        <div class="ctl"><label>Peak</label>
+        <div class="ctl"><label for="rtaPeak">Peak</label>
           <select id="rtaPeak"><option value="decay">Decaimiento</option><option value="hold">Fijo</option><option value="off">Off</option></select>
         </div>
         <button class="btn btn-sm" id="rtaSaveCurve">＋ Guardar curva</button>
         <button class="btn btn-sm btn-danger" id="rtaClearCurves">Limpiar curvas</button>
+        <button class="btn btn-sm" id="rtaExport">Exportar CSV</button><button class="btn btn-sm" id="rtaPng">Exportar PNG</button>
       </div>
-      <div class="panel"><canvas id="cvRta"></canvas></div>
+      <div class="panel"><canvas id="cvRta" role="img" aria-label="Espectro por bandas de octava"></canvas></div>
     </section>
 
     <!-- ── Espectrograma ── -->
-    <section class="module" id="mod-spectro">
+    <section class="module" id="mod-spectro" role="tabpanel" aria-labelledby="tab-spectro">
       <div class="controls">
-        <div class="ctl"><label>Mapa</label>
+        <div class="ctl"><label for="spMap">Mapa</label>
           <select id="spMap"><option value="audio">BernAudio</option><option value="inferno">Inferno</option><option value="viridis">Viridis</option><option value="gray">Grises</option></select>
         </div>
-        <div class="ctl"><label>Techo dB SPL</label><input type="range" id="spTop" min="60" max="140" value="130"><span class="chip" id="spTopChip">130</span></div>
-        <div class="ctl"><label>Rango dB</label><input type="range" id="spRange" min="30" max="110" value="80"><span class="chip" id="spRangeChip">80</span></div>
-        <div class="ctl"><label>f máx</label>
+        <div class="ctl"><label for="spTop">Techo dB/bin</label><input type="range" id="spTop" min="20" max="140" value="100"><span class="chip" id="spTopChip">100</span></div>
+        <div class="ctl"><label for="spRange">Rango dB</label><input type="range" id="spRange" min="30" max="110" value="80"><span class="chip" id="spRangeChip">80</span></div>
+        <div class="ctl"><label for="spFmax">f máx</label>
           <select id="spFmax"><option value="24000">24 kHz</option><option value="16000">16 kHz</option><option value="8000">8 kHz</option></select>
         </div>
       </div>
-      <div class="panel"><canvas id="cvSpectro"></canvas></div>
+      <div class="panel"><canvas id="cvSpectro" role="img" aria-label="Historial espectral"></canvas></div>
+      <p class="note">Potencia por bin FFT, con offset de nivel y corrección del micrófono. El cursor indica frecuencia y nivel <b>actual</b>; el historial visual se desplaza mientras esta vista está abierta.</p>
     </section>
 
     <!-- ── Transferencia ── -->
-    <section class="module" id="mod-tf">
+    <section class="module" id="mod-tf" role="tabpanel" aria-labelledby="tab-tf">
       <div class="controls">
-        <button class="btn btn-primary btn-sm" id="tfStart">▶ Medir con ruido rosa</button>
+        <button class="btn btn-primary btn-sm" id="tfStart">▶ Iniciar transferencia</button>
         <button class="btn btn-sm btn-danger" id="tfStop">■ Parar</button>
-        <div class="ctl"><label>Referencia</label>
+        <div class="ctl"><label for="tfRef">Referencia</label>
           <select id="tfRef" title="Interna = generador (sin cable) · Canal 2 = loopback por cable (pro, requiere 2 canales)">
             <option value="gen">Generador (interna)</option>
             <option value="ch2">Canal 2 (loopback)</option>
           </select>
         </div>
-        <div class="ctl"><label>Delay auto</label><input type="checkbox" id="tfAutoDelay" checked></div>
+        <div class="ctl"><label for="tfAutoDelay">Delay auto</label><input type="checkbox" id="tfAutoDelay" checked></div>
         <button class="btn btn-sm" id="tfFindDelay">🎯 Buscar delay</button>
-        <div class="ctl"><label>Ajuste delay</label><input type="range" id="tfDelayMs" min="-20" max="20" step="0.1" value="0" title="Ajuste fino de tiempo para aplanar la fase"><span class="chip" id="tfDelayMsChip">0.0 ms</span></div>
-        <div class="ctl"><label>Polaridad ⊘</label><input type="checkbox" id="tfPolarity" title="Invierte la polaridad (fase +180°)"></div>
-        <div class="ctl"><label>Suavizado</label>
+        <div class="ctl"><label for="tfDelayMs">Ajuste delay</label><input type="range" id="tfDelayMs" min="-20" max="20" step="0.1" value="0" title="Ajuste fino de tiempo para aplanar la fase"><span class="chip" id="tfDelayMsChip">0.0 ms</span></div>
+        <div class="ctl"><label for="tfPolarity">Polaridad ⊘</label><input type="checkbox" id="tfPolarity" title="Invierte la polaridad (fase +180°)"></div>
+        <div class="ctl"><label for="tfSmooth">Suavizado</label>
           <select id="tfSmooth"><option value="0">Ninguno</option><option value="6" selected>1/6 oct</option><option value="12">1/12 oct</option></select>
         </div>
-        <div class="ctl"><label>Ver</label>
+        <div class="ctl"><label for="tfView">Ver</label>
           <select id="tfView"><option value="both">Mag + Fase</option><option value="mag">Magnitud</option><option value="phase">Fase</option></select>
         </div>
         <button class="btn btn-sm" id="tfSaveTrace" title="Memoriza la medición actual para comparar con otra fuente">＋ Guardar traza</button>
@@ -177,19 +184,19 @@
         <button class="btn btn-sm" id="tfExportPng" title="Descarga el gráfico como imagen PNG">🖼 PNG</button>
         <span class="chip" id="tfDelayChip">delay: —</span>
       </div>
-      <div class="panel"><canvas id="cvTf"></canvas></div>
+      <div class="panel"><canvas id="cvTf" role="img" aria-label="Magnitud fase y coherencia"></canvas></div>
       <p style="color:var(--muted);font-size:12px;line-height:1.5">
         Genera ruido rosa y capta con el micrófono: respuesta con fase referida al delay detectado.
         <b>Compara 2 o más fuentes:</b> mide la fuente 1 → Parar → ＋ Guardar traza (A), cambia a la fuente 2 → medir → Guardar traza (B).
         <b>Pro con hardware:</b> Canales = 2 + cable de loopback salida→entrada 2 y Referencia = «Canal 2» (medición clásica de doble canal).
-        Usa «Ajuste delay» y «Polaridad» para aplanar la fase. Sube volumen gradualmente.
+        El ruido rosa se emite al iniciar con referencia interna; con Canal 2 aporta tu señal externa. El ajuste de delay y polaridad cambia el análisis, no el DSP de tus altavoces. El retardo interno incluye la latencia de la cadena del dispositivo.
       </p>
     </section>
 
     <!-- ── Delay Finder ── -->
-    <section class="module" id="mod-delay">
+    <section class="module" id="mod-delay" role="tabpanel" aria-labelledby="tab-delay">
       <div class="controls">
-        <div class="ctl"><label>Modo</label>
+        <div class="ctl"><label for="dlMode">Modo</label>
           <select id="dlMode" title="1 micro funciona en iPad · 2 micros requiere interfaz estéreo">
             <option value="seq">1 micro — secuencial A→B</option>
             <option value="dual">2 micros — en vivo</option>
@@ -206,10 +213,10 @@
         <div class="ro"><div class="v" id="dlConf">--</div><div class="l">Confianza</div></div>
         <div class="ro"><div class="v small" id="dlRec">--</div><div class="l">Recomendación</div></div>
       </div>
-      <div class="panel"><div class="panel-title">Correlación cruzada (±40 ms)</div><canvas id="cvDelay"></canvas></div>
+      <div class="panel"><div class="panel-title">Correlación cruzada (±40 ms)</div><canvas id="cvDelay" role="img" aria-label="Correlación entre señales"></canvas></div>
       <p class="note" id="dlHelp1">
-        <b>Modo 1 micro (ideal iPad):</b> pon el micro en la posición de escucha. Reproduce ruido rosa SOLO por la fuente A
-        (silencia la B) y pulsa ①; luego reproduce SOLO por B y pulsa ②. BernAudio calcula Δt, la distancia equivalente
+        <b>Modo 1 micro (ideal iPad):</b> pon el micro en la posición de escucha. Al pulsar ① o ② se inicia el ruido rosa de BernAudio al nivel seleccionado en Generador. Enruta la salida SOLO por la fuente A
+        (silencia la B) al medir ①; luego enrútala SOLO por B al medir ②. No uses un ruido rosa externo independiente. BernAudio calcula Δt, la distancia equivalente
         y te indica a qué fuente añadir delay para alinearlas.
       </p>
       <p class="note" id="dlHelp2" style="display:none">
@@ -220,10 +227,11 @@
     </section>
 
     <!-- ── Impulso ── -->
-    <section class="module" id="mod-ir">
+    <section class="module" id="mod-ir" role="tabpanel" aria-labelledby="tab-ir">
       <div class="controls">
-        <button class="btn btn-primary btn-sm" id="irMeasure">▶ Medir IR (barrido 10 s)</button>
-        <div class="ctl"><label>Duración</label>
+        <button class="btn btn-primary btn-sm" id="irMeasure">▶ Medir IR</button>
+        <button class="btn btn-sm btn-danger" id="irCancel">Cancelar barrido</button>
+        <div class="ctl"><label for="irDur">Duración</label>
           <select id="irDur"><option value="5">5 s</option><option value="10" selected>10 s</option><option value="15">15 s</option><option value="20">20 s</option></select>
         </div>
         <button class="btn btn-sm" id="irExport">💾 Exportar WAV</button>
@@ -231,26 +239,25 @@
       </div>
       <div class="progressbar" id="irProgress" style="display:none"><div></div></div>
       <div class="ir-results">
-        <div class="ro"><div class="v" id="irDelay">--</div><div class="l">Delay (ms)</div></div>
-        <div class="ro"><div class="v" id="irDist">--</div><div class="l">Distancia (m)</div></div>
+        <div class="ro"><div class="v" id="irDelay">--</div><div class="l">Retardo total de cadena (ms)</div></div>
+        <div class="ro"><div class="v" id="irDist">--</div><div class="l">Equivalente de trayecto (m)</div></div>
         <div class="ro"><div class="v" id="irRt60">--</div><div class="l" id="irRt60L">RT60 estimado</div></div>
         <div class="ro"><div class="v" id="irEdt">--</div><div class="l">EDT (s)</div></div>
         <div class="ro"><div class="v" id="irT30">--</div><div class="l">T30 (s)</div></div>
         <div class="ro"><div class="v" id="irC50">--</div><div class="l">C50 (dB)</div></div>
         <div class="ro"><div class="v" id="irC80">--</div><div class="l">C80 (dB)</div></div>
-        <div class="ro"><div class="v" id="irPeakLvl">--</div><div class="l">Nivel pico (dBFS)</div></div>
+        <div class="ro"><div class="v" id="irPeakLvl">--</div><div class="l">Pico relativo al barrido (dB)</div></div>
       </div>
-      <div class="panel"><div class="panel-title">Respuesta al impulso (dB)</div><canvas id="cvIr"></canvas></div>
+      <div class="panel"><div class="panel-title">Respuesta al impulso (dB)</div><canvas id="cvIr" role="img" aria-label="Respuesta al impulso"></canvas></div>
       <p style="color:var(--muted);font-size:12px;line-height:1.5">
-        Reproduce un barrido logarítmico y lo deconvuelve del registro del micro (método Farina).
-        Silencio recomendado durante la medición. Los armónicos quedan fuera de la ventana analizada.
+        Barrido logarítmico con deconvolución regularizada. El retardo incluye el navegador, la interfaz y la salida; el equivalente de trayecto no representa una distancia acústica medida. EDT, T20, T30 y claridad son estimaciones de banda completa, no una certificación ISO. Una medición sin suficiente decaimiento se muestra como no válida.
       </p>
     </section>
 
     <!-- ── Generador ── -->
-    <section class="module" id="mod-gen">
+    <section class="module" id="mod-gen" role="tabpanel" aria-labelledby="tab-gen">
       <div class="controls">
-        <div class="ctl"><label>Señal</label>
+        <div class="ctl"><label for="genType">Señal</label>
           <select id="genType">
             <option value="pink">Ruido rosa</option>
             <option value="white">Ruido blanco</option>
@@ -259,20 +266,20 @@
             <option value="silence">Silencio</option>
           </select>
         </div>
-        <div class="ctl" id="genSineCtl" style="display:none"><label>Frecuencia</label>
+        <div class="ctl" id="genSineCtl" style="display:none"><label for="genFreq">Frecuencia</label>
           <input type="range" id="genFreq" min="20" max="20000" step="1" value="1000"><span class="chip" id="genFreqChip">1000 Hz</span>
         </div>
-        <div class="ctl" id="genSweepCtl" style="display:none"><label>Duración</label>
+        <div class="ctl" id="genSweepCtl" style="display:none"><label for="genSweepDur">Duración</label>
           <select id="genSweepDur"><option value="3">3 s</option><option value="5">5 s</option><option value="10" selected>10 s</option><option value="20">20 s</option></select>
         </div>
-        <div class="ctl"><label>Nivel</label><input type="range" id="genLevel" min="-60" max="0" value="-18"><span class="chip" id="genLevelChip">−18 dB</span></div>
+        <div class="ctl"><label for="genLevel">Nivel</label><input type="range" id="genLevel" min="-60" max="0" value="-30"><span class="chip" id="genLevelChip">−30 dB</span></div>
         <button class="btn btn-primary btn-sm" id="genPlay">▶ Reproducir</button>
         <button class="btn btn-sm btn-danger" id="genStopBtn">■ Parar</button>
         <button class="btn btn-sm btn-amber" id="genToTf">Usar en Transferencia</button>
       </div>
       <div class="panel">
         <div class="panel-title">Monitor de salida</div>
-        <canvas id="cvGen"></canvas>
+        <canvas id="cvGen" role="img" aria-label="Monitor del generador"></canvas>
       </div>
       <p style="color:var(--muted);font-size:12px">
         ⚠️ Con altavoces a volumen alto puede haber acoples: usa auriculares o baja el nivel antes de reproducir.
@@ -280,37 +287,39 @@
     </section>
 
     <!-- ── Calibración ── -->
-    <section class="module" id="mod-cal">
+    <section class="module" id="mod-cal" role="tabpanel" aria-labelledby="tab-cal">
       <div class="controls">
-        <label class="btn btn-sm btn-primary file-btn">📂 Cargar archivo de calibración
-          <input type="file" id="calFile" accept=".cal,.csv,.txt,.frd,.tsv,.mic" hidden>
-        </label>
-        <div class="ctl"><label>Aplicar corrección</label><input type="checkbox" id="calApply"></div>
+        <div class="ctl"><label for="calFile">Curva de corrección</label><input type="file" id="calFile" accept=".cal,.csv,.txt,.frd,.tsv,.mic"></div>
+        <div class="ctl"><label for="calApply">Aplicar corrección</label><input type="checkbox" id="calApply"></div>
         <button class="btn btn-sm" id="calExport" title="Descarga la curva cargada como CSV">💾 Exportar CSV</button>
         <button class="btn btn-sm btn-danger" id="calRemove">Eliminar</button>
         <span class="chip" id="calInfo">sin archivo</span>
       </div>
-      <div class="panel"><div class="panel-title">Curva de corrección del micrófono (dB)</div><canvas id="cvCal"></canvas></div>
+      <div class="controls"><div class="ctl"><label for="calReference">Nivel de referencia (dB)</label><input type="number" id="calReference" min="30" max="140" step="0.1" value="94"></div>
+        <button class="btn btn-primary" id="calSetReference">Ajustar a referencia</button>
+        <button class="btn" id="calConfirm">He verificado mi offset manual</button>
+        <p class="note">Usa una fuente estable de nivel conocido y ponderación Z. La curva de frecuencia y la calibración de nivel son ajustes distintos. Un cambio de entrada o ganancia requiere volver a comprobar el nivel.</p>
+      </div>
+      <div class="panel"><div class="panel-title">Curva de corrección del micrófono (dB)</div><canvas id="cvCal" role="img" aria-label="Curva de corrección"></canvas></div>
       <p class="note">
-        <b>Sin pistófono:</b> carga el archivo de corrección del fabricante de tu micrófono de medición
+        <b>Corrección por frecuencia:</b> carga el archivo de corrección del fabricante de tu micrófono de medición
         (UMIK-1/UMIK-2, Earthworks, miniDSP, Audix…). Formatos aceptados: <code>.cal</code>, <code>.csv</code>,
-        <code>.txt</code>, <code>.frd</code> — líneas con dos columnas: <code>frecuencia(Hz)&nbsp;&nbsp;corrección(dB)</code>.
-        La curva se aplica en vivo a SPL, RTA, Espectrograma y Función de Transferencia, y queda guardada en el
-        navegador. El nivel absoluto se ajusta con el deslizador «Cal» de la barra superior (o con un calibrador
-        acústico a 94/114 dB si dispones de uno).
+        <code>.txt</code>, <code>.frd</code> — líneas con dos columnas: <code>frecuencia(Hz)&nbsp;&nbsp;corrección_a_sumar(dB)</code>.
+        Usa punto decimal. La curva se aplica en vivo a SPL, RTA, Espectrograma y Función de Transferencia, y queda guardada en el
+        navegador. El nivel absoluto se ajusta con una referencia acústica conocida. Si el archivo expresa la respuesta del micrófono en lugar de la corrección, invierte el signo de sus valores antes de importarlo.
       </p>
     </section>
 
     <!-- ── Ayuda / Plataformas ── -->
-    <section class="module" id="mod-help">
+    <section class="module" id="mod-help" role="tabpanel" aria-labelledby="tab-help">
       <div class="help-grid">
         <div class="help-card">
           <h4>▶ ¿Qué señal se envía y cuándo?</h4>
           <ul>
             <li><b>Con micrófono (medición pasiva):</b> BernAudio <b>no emite nada</b>. Solo escucha: SPL, RTA y espectrograma del ambiente o del programa que ya suena.</li>
             <li><b>Generador:</b> tú lo inicias (rosa, blanco, seno o barrido) y son tus altavoces los que emiten; el micrófono mide lo que llega. Es un lazo <b>acústico</b> (señal por el aire).</li>
-            <li><b>Transferencia / IR:</b> al pulsar «Medir con ruido rosa» o «Medir IR», BernAudio arranca el generador interno solo; la referencia es la señal generada (sin cable) y el delay del sistema se compensa por correlación.</li>
-            <li><b>Modo pro 2 canales (loopback):</b> la referencia va <b>por cable</b> al canal 2 del interface (método Smaart): mides únicamente el equipo bajo test, sin depender de la sala.</li>
+            <li><b>Transferencia / IR:</b> al iniciar transferencia con referencia interna o medir IR, se reproduce una señal de prueba. La referencia interna incluye la cadena del dispositivo; el modo Canal 2 utiliza tu señal cableada. Los controles de análisis no modifican los altavoces.</li>
+            <li><b>Modo pro 2 canales (loopback):</b> la referencia va <b>por cable</b> al canal 2 del interface : proporciona una referencia sincronizada con la entrada de medición; la sala sigue influyendo si el trayecto es acústico.</li>
             <li><b>Delay Finder:</b> modo 1 micro (secuencial A→B con referencia interna) o 2 micros en vivo.</li>
           </ul>
         </div>
@@ -319,21 +328,21 @@
           <ul>
             <li>Windows / macOS / Linux con Chrome, Edge o Firefox.</li>
             <li>Interfaz de audio USB (2×2 o superior): selecciónala en <b>Entrada</b> y pon <b>2 (estéreo)</b> en <b>Canales</b>.</li>
-            <li><b>TF con cable de loopback</b>: conecta una salida de la interfaz a la entrada 2 y elige Referencia = «Canal 2» en Transferencia — referencia perfecta por cable, como Smaart.</li>
+            <li><b>TF con cable de loopback</b>: conecta una salida de la interfaz a la entrada 2 y elige Referencia = «Canal 2» en Transferencia — referencia física por cable, sin garantía de precisión absoluta.</li>
             <li>Dos micrófonos de medición → <b>Delay Finder</b> en vivo entre fuentes.</li>
           </ul>
         </div>
         <div class="help-card">
           <h4>📱 iPad</h4>
           <ul>
-            <li>Safari (iPadOS 15+) o Chrome para iOS — funciona con el micrófono interno del iPad.</li>
+            <li>Safari actualizado o Chrome para iOS, según las capacidades del dispositivo y sus permisos de micrófono.</li>
             <li>Micrófono externo o interfaz USB‑C / Lightning (audio clase compatible): aparece en <b>Entrada</b>.</li>
-            <li>SPL, RTA, espectrograma, TF sin cable y delay finder secuencial funcionan igual que en escritorio.</li>
+            <li>SPL, RTA, espectrograma, TF con referencia interna y delay finder secuencial dependen del navegador, el hardware y la estabilidad del reloj de audio.</li>
             <li>Consejo: abre en pantalla completa desde «Añadir a pantalla de inicio».</li>
           </ul>
         </div>
         <div class="help-card">
-          <h4>🎙️ Calibración sin pistófono</h4>
+          <h4>🎙️ Calibración de frecuencia y nivel</h4>
           <ul>
             <li>Carga el archivo de corrección del fabricante (.cal/.csv/.txt/.frd) en la pestaña <b>Calibración</b>.</li>
             <li>Ajusta el nivel absoluto con el deslizador <b>Cal</b> (dB SPL @ 0 dBFS), o con un calibrador a 94/114 dB si tienes uno.</li>
@@ -355,11 +364,12 @@
 
   <!-- ── Estado ── -->
   <footer class="statusbar">
-    <span><span class="dot" id="stDot"></span> <span id="stText">detenido</span></span>
+    <span><span class="dot" id="stDot"></span> <span id="stText" role="status" aria-live="polite">detenido</span></span>
     <span>fs: <b id="stSr">—</b></span>
     <span>fft: <b id="stFft">8192</b></span>
     <span>canales: <b id="stCh">—</b></span>
-    <span>cal: <b id="stCal">94 dBFS→SPL</b></span>
+    <span>cal: <b id="stCal">SIN CALIBRAR</b></span>
+    <span id="stQuality">Sin captura</span>
     <span class="spacer" style="flex:1"></span>
     <a href="index.html">← Landing</a>
     <a href="subs.html">Subs</a>
@@ -387,8 +397,10 @@
     </div>
   </footer>
 
+  </div><!-- workspace -->
   <script src="js/app/dsp.js"></script>
   <script src="js/app/audio-engine.js"></script>
+  <script src="js/app/level-meter.js"></script>
   <script src="js/app/modules-spl.js"></script>
   <script src="js/app/modules-tf.js"></script>
   <script src="js/app/modules-delay.js"></script>
