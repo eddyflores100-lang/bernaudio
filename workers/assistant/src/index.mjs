@@ -60,9 +60,21 @@ export default {
       ...body.messages.map(m => ({ role: m.role, content: m.content.trim() }))
     ];
     try {
-      const result = await env.AI.run(MODEL, { messages, max_tokens: 850, temperature: 0.25 });
-      const answer = result?.choices?.[0]?.message?.content ?? result?.response ?? "";
-      if (typeof answer !== "string" || !answer.trim()) return json({ error: "La IA no devolvió una respuesta utilizable." }, 502, origin);
+      const result = await env.AI.run(MODEL, {
+        messages,
+        max_tokens: 1200,
+        temperature: 0.25,
+        reasoning_effort: "low",
+        store: false
+      });
+      const message = result?.choices?.[0]?.message;
+      const content = message?.content ?? result?.response ?? "";
+      const answer = Array.isArray(content)
+        ? content.map(part => typeof part === "string" ? part : part?.text || "").join("\n")
+        : content;
+      if (typeof answer !== "string" || !answer.trim()) {
+        return json({ error: "La IA no logró completar una respuesta. Inténtalo de nuevo." }, 502, origin);
+      }
       return json({ answer: answer.trim(), model: MODEL }, 200, origin);
     } catch (error) {
       return json({ error: "No se pudo completar el análisis. Inténtalo de nuevo más tarde." }, 502, origin);
