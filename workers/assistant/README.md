@@ -45,3 +45,18 @@ sigue apuntando a `main` y a la raíz.
 `npm test` incluye pruebas del Worker con un binding AI simulado; no generan
 consumo de inferencia. La prueba de salud no llama al modelo. La validación
 física de micrófonos e interfaces sigue siendo independiente.
+
+
+## Contexto meteorológico de campo
+
+La ruta `GET /api/environment?lat=<lat>&lon=<lon>` consulta WeatherAPI.com
+desde el Worker y devuelve ubicación, fecha de captura, presión, temperatura,
+humedad, viento y otros campos meteorológicos sanitizados. La clave debe quedar
+en un secreto Cloudflare llamado `WEATHERAPI_KEY`. No se envía al navegador.
+Si no está, devuelve `503 weather_not_configured`, sin afectar el chat AI ni
+el analizador local.
+
+El cliente solo solicita ubicación tras pulsar «Actualizar ambiente». Las
+coordenadas de cada zona son opt-in y no se guardan automáticamente. Los datos
+de clima son contexto externo; no se usan para cambiar niveles SPL, EQ, delay ni
+aplicar correcciones físicas automáticas.
