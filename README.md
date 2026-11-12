@@ -84,6 +84,10 @@ respuesta temporal, offset, estado de calibración declarado y tiempos relativos
 de las muestras del historial. El informe de sesión JSON añade la frecuencia de
 muestreo, los canales, la ruta de captura y la curva de corrección disponible.
 
+## Demostración y entrega QA
+
+Consulta la [guía de demostración y entrega QA](docs/DEMO_HANDOFF.md) para presentar la aplicación, revisar las pruebas virtuales y ejecutar el guion físico P01–P12.
+
 ## Validación con hardware real
 
 Las pruebas automatizadas no sustituyen la validación física de micrófonos e interfaces. Consulta el [protocolo de validación de hardware](docs/HARDWARE_VALIDATION.md) para registrar la cadena, comprobar calibración, transferencia, delay e impulso y documentar compatibilidad por dispositivo.
