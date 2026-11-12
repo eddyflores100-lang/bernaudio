@@ -101,7 +101,7 @@
         const message = error?.name === 'AbortError'
           ? 'El análisis tardó demasiado. Vuelve a intentarlo.'
           : error instanceof TypeError
-            ? 'No se pudo conectar con el servidor de IA. La conexión pública ya está habilitada; recarga la página y prueba otra vez.'
+            ? 'No se pudo conectar con el servicio de IA. Comprueba tu conexión y vuelve a intentarlo.'
             : (error.message || 'No se pudo completar el análisis.');
         addMessage('assistant', message);
       } finally { send.disabled = false; send.textContent = 'Enviar'; input.focus(); }
