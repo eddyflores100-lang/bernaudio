@@ -167,7 +167,7 @@
     renderWeather() {
       if (!this.ui) return;
       const grid = this.ui.weatherGrid;
-      grid.replaceChildren();
+      grid.textContent = '';
       if (!this.weather) {
         const message = document.createElement('p');
         message.className = 'field-muted';
@@ -198,7 +198,7 @@
     renderPoints() {
       if (!this.ui) return;
       this.ui.pointCount.textContent = String(this.points.length);
-      this.ui.list.replaceChildren();
+      this.ui.list.textContent = '';
       if (!this.points.length) {
         const empty = document.createElement('p');
         empty.className = 'field-muted';
