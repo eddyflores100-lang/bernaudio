@@ -173,7 +173,7 @@
       }
       let pointLocation = null;
       if (this.ui.includeGps.checked) {
-        try { pointLocation = this.location || await this.getLocation(); }
+        try { pointLocation = await this.getLocation(); }
         catch (error) { this.status((error.message || 'Sin GPS.') + ' La zona se guardará sin coordenadas.'); }
       }
       if (this._weatherOptIn && this.location && this.weather &&
