@@ -43,11 +43,19 @@ export default {
     if (origin && !ALLOWED_ORIGINS.has(origin)) return json({ error: "Origen no autorizado." }, 403);
     const url = new URL(request.url);
     if (request.method === "GET" && url.pathname === "/health") return json({ ok: true, service: "bernaudio-ai", model: MODEL }, 200, origin);
-    if (request.method === "GET" && url.pathname === "/api/environment") {
-      const latitude = Number(url.searchParams.get("lat"));
-      const longitude = Number(url.searchParams.get("lon"));
-      if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
-          !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+    if (request.method === "POST" && url.pathname === "/api/environment") {
+      let coordinates;
+      try {
+        const raw = await request.text();
+        if (raw.length > 2048) return json({ error: "Solicitud demasiado grande." }, 413, origin);
+        coordinates = JSON.parse(raw);
+      } catch (_) {
+        return json({ error: "JSON de ubicación no válido." }, 400, origin);
+      }
+      const latitude = coordinates?.latitude;
+      const longitude = coordinates?.longitude;
+      if (typeof latitude !== "number" || !Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
+          typeof longitude !== "number" || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
         return json({ error: "Coordenadas no válidas." }, 400, origin);
       }
       if (!env.WEATHERAPI_KEY) {

@@ -74,8 +74,11 @@
       if (!options.silent) this.ui.weatherStatus.textContent = 'Solicitando ubicación y condiciones ambientales…';
       try {
         const location = await this.getLocation();
-        const url = API + '?lat=' + encodeURIComponent(location.latitude) + '&lon=' + encodeURIComponent(location.longitude);
-        const response = await fetch(url, { method: 'GET', headers: { accept: 'application/json' } });
+        const response = await fetch(API, {
+          method: 'POST',
+          headers: { accept: 'application/json', 'content-type': 'application/json' },
+          body: JSON.stringify({ latitude: location.latitude, longitude: location.longitude })
+        });
         let payload = {};
         try { payload = await response.json(); } catch (_) {}
         if (!response.ok) {

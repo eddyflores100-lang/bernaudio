@@ -12,7 +12,7 @@ const metadata = {
   compatibility_date: '2026-11-12',
   bindings: [{ type: 'ai', name: 'AI' }],
   keep_bindings: ['secret_text'],
-  observability: { enabled: true, logs: { enabled: true, invocation_logs: true } },
+  observability: { enabled: true, redact_query_string: true, logs: { enabled: true, invocation_logs: true } },
   annotations: { 'workers/message': 'BernAudio AI advisory assistant' }
 };
 const form = new FormData();
