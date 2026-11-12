@@ -44,7 +44,7 @@
     };
   }
   function init() {
-    if (byId('baAiLauncher')) return;
+    if (document.querySelector('#baAiLauncher')) return;
     const launcher = document.createElement('button');
     launcher.id = 'baAiLauncher'; launcher.type = 'button'; launcher.className = 'ba-ai-launcher';
     launcher.setAttribute('aria-expanded', 'false'); launcher.setAttribute('aria-controls', 'baAiPanel');
