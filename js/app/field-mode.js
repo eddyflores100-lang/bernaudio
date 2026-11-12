@@ -76,7 +76,7 @@
       try {
         if (!global.localStorage) throw new Error('Almacenamiento local no disponible.');
         const data = this.exportData();
-        if (!data.points.length && !data.eventName) {
+        if (!data.points.length) {
           global.localStorage.removeItem(DRAFT_KEY);
           if (this.ui.draftStatus) this.ui.draftStatus.textContent = 'No hay borrador guardado.';
           if (this.ui.restoreDraft) this.ui.restoreDraft.hidden = true;
