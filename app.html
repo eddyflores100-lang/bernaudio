@@ -11,6 +11,9 @@
   <title>BernAudio — Instrumentos de audio · Alicelabs LLC</title>
   <meta name="description" content="SPL, RTA hasta 1/48 de octava con motor FFT extendido, espectrograma completo, delay finder entre fuentes, función de transferencia con ajuste de tiempo y fase, calibración de micrófono por archivo e IR. En tu navegador, gratis: computador con hardware e iPad." />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="icon" type="image/svg+xml" sizes="any" href="assets/pwa-icon.svg" />
+  <link rel="apple-touch-icon" href="assets/pwa-icon.svg" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=VT323&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
@@ -31,6 +34,7 @@
         <button class="btn btn-primary btn-lg" id="btnStart">🎙️ Iniciar medición</button>
         <button class="btn btn-ghost btn-lg" id="btnGenOnly">🎛️ Solo generador</button>
       </div>
+      <button class="btn btn-ghost pwa-install-start" type="button" data-pwa-install>⇩ Instalar BernAudio en este dispositivo</button>
       <p class="hint" style="margin-top:10px"><b>🎙️ Micrófono</b> = BernAudio solo escucha, no emite señal.<br>
       <b>🎛️ Generador</b> = tú inicias la señal (rosa/sweep/seno) y los altavoces la reproducen para medir.</p>
       <div class="error-box" id="startError" role="alert"></div>
@@ -38,6 +42,22 @@
       <b>Consejo:</b> desactiva mejoras de sonido del sistema para medir con precisión.</p>
     </div>
   </div>
+
+  <section class="pwa-modal" id="pwaInstallGuide" hidden>
+    <div class="pwa-dialog" role="dialog" aria-modal="true" aria-labelledby="pwaInstallTitle">
+      <div class="pwa-dialog-head">
+        <div><span class="pwa-eyebrow">BERNAUDIO · APP DE CAMPO</span><h2 id="pwaInstallTitle">Instalar en tu dispositivo</h2></div>
+        <button class="pwa-close" id="btnCloseInstallGuide" type="button" aria-label="Cerrar">×</button>
+      </div>
+      <p class="pwa-guide-intro" id="pwaInstallIntro">Instala BernAudio en la pantalla de inicio para abrirla en una ventana propia.</p>
+      <div class="pwa-platform-steps">
+        <article><h3>Android · Chrome</h3><ol><li>Abre este sitio con Chrome.</li><li>Pulsa <b>Instalar app</b> en el aviso, o abre el menú ⋮.</li><li>Elige <b>Instalar aplicación</b> o <b>Añadir a pantalla de inicio</b>.</li></ol></article>
+        <article><h3>iPhone · iPad</h3><ol><li>Abre BernAudio en Safari.</li><li>Pulsa <b>Compartir</b>.</li><li>Elige <b>Añadir a pantalla de inicio</b> y, si aparece, conserva <b>Abrir como app web</b>.</li><li>Pulsa <b>Añadir</b>.</li></ol></article>
+      </div>
+      <p class="pwa-guide-note">La primera vez, abre BernAudio con internet para almacenar la interfaz y sus recursos. Las mediciones de audio se procesan en el dispositivo; el asistente IA y el clima necesitan conexión.</p>
+      <button class="btn btn-primary pwa-guide-done" id="btnInstallGuideDone" type="button">Entendido</button>
+    </div>
+  </section>
 
   <div id="workspace" inert>
   <!-- ── Barra superior ── -->
@@ -84,6 +104,7 @@
       </div>
     </details>
     <div class="topbar-actions">
+      <button class="btn btn-primary btn-sm" id="btnInstallAppTop" type="button" data-pwa-install>⇩ Instalar app</button>
       <button class="btn btn-sm" id="btnResume">Reanudar audio</button>
       <button class="btn btn-sm" id="btnSession">Exportar sesión</button>
       <button class="btn btn-sm" id="btnImportSession">Importar sesión</button>
@@ -91,6 +112,12 @@
       <button class="btn btn-danger btn-sm" id="btnStop">■ Detener</button>
     </div>
   </header>
+
+  <aside class="pwa-update-banner" id="pwaUpdateBanner" hidden role="status" aria-live="polite">
+    <span>Hay una versión nueva de BernAudio lista. Actualiza cuando termines la medición.</span>
+    <button class="btn btn-sm btn-primary" id="btnApplyPwaUpdate" type="button">Actualizar app</button>
+    <button class="btn btn-sm" id="btnDismissPwaUpdate" type="button" aria-label="Más tarde">Luego</button>
+  </aside>
 
   <!-- ── Pestañas ── -->
   <nav class="tabs" id="tabs" role="tablist" aria-label="Instrumentos de medición">
@@ -405,6 +432,14 @@
         <div class="field-weather-grid" id="fieldWeatherGrid" aria-live="polite"></div>
         <p class="field-source-note">La presión y el clima son datos externos estimados para la ubicación consultada. No provienen del barómetro interno del teléfono ni sustituyen una estación junto al escenario. Fuente meteorológica: WeatherAPI.com.</p>
       </div>
+      <div class="field-card field-draft-card">
+        <div><h3>Recuperación automática</h3><p id="fieldDraftStatus" class="field-muted">El borrador se guarda en este dispositivo cuando registras o cambias zonas. No se envía a la nube.</p></div>
+        <div class="field-draft-actions">
+          <button class="btn btn-primary btn-sm" id="fieldRestoreDraft" type="button" hidden>Recuperar borrador</button>
+          <button class="btn btn-sm" id="fieldDeleteDraft" type="button" hidden>Eliminar borrador local</button>
+        </div>
+        <p class="field-source-note">En equipos compartidos, elimina el borrador al terminar. Si activaste GPS para una zona, sus coordenadas pueden quedar incluidas en este borrador local.</p>
+      </div>
       <div class="field-card">
         <h3>Registrar una posición de escucha</h3>
         <div class="field-stage-map" role="group" aria-label="Plano táctil de posiciones del público">
@@ -452,6 +487,7 @@
     <span>canales: <b id="stCh">—</b></span>
     <span>cal: <b id="stCal">SIN CALIBRAR</b></span>
     <span id="stQuality">Sin captura</span>
+    <span class="pwa-network-status" id="pwaNetworkStatus" role="status" aria-live="polite">Comprobando conexión…</span>
     <span class="spacer" style="flex:1"></span>
     <a href="index.html">← Landing</a>
     <a href="subs.html">Subs</a>
