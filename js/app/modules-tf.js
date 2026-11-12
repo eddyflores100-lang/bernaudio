@@ -427,8 +427,12 @@
     saveTrace() {
       if (this.updates < 2) return;
       const serial = this._traceSerial++, name = String.fromCharCode(65 + serial % 26) + (serial >= 26 ? Math.floor(serial / 26) + 1 : '');
-      this.traces.push({ name, sampleRate: this._sampleRate || AE.sampleRate, fftSize: this.W,
-        mag: Float64Array.from(this.magDb), phase: Float64Array.from(this.phaseDeg) });
+      this.traces.push({ name, createdAt: new Date().toISOString(),
+        sampleRate: this._sampleRate || AE.sampleRate, fftSize: this.W,
+        reference: this.refSource, delaySamples: this.delaySamples,
+        delayAdjustmentMs: +this.el.tfDelayMs.value, polarityInverted: this.polarity,
+        mag: Float64Array.from(this.magDb), phase: Float64Array.from(this.phaseDeg),
+        coherence: Float64Array.from(this.coher) });
       if (this.traces.length > 3) this.traces.shift();
       global.UI.setStatus('Traza ' + name + ' guardada — compara fuentes');
       this.draw();
