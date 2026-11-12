@@ -212,7 +212,7 @@
     init() {
       ['tfStart', 'tfStop', 'tfAutoDelay', 'tfFindDelay', 'tfSmooth', 'tfView', 'tfDelayChip',
        'tfRef', 'tfDelayMs', 'tfDelayMsChip', 'tfPolarity', 'tfSaveTrace', 'tfClearTraces',
-       'tfExportCsv', 'tfExportPng', 'cvTf']
+       'tfExportCsv', 'tfExportPng', 'tfCompareSummary', 'cvTf']
         .forEach((id) => (this.el[id] = document.getElementById(id)));
       this.el.tfStart.addEventListener('click', () => this.start());
       this.el.tfStop.addEventListener('click', () => this.stop());
@@ -477,8 +477,59 @@
       this.draw();
     },
 
+    _comparisonStats() {
+      if (!Array.isArray(this.traces) || this.traces.length < 2) return null;
+      const [a, b] = this.traces.slice(-2);
+      const validTrace = (tr) => tr && Number.isFinite(tr.sampleRate) && tr.sampleRate > 0 &&
+        Number.isFinite(tr.fftSize) && tr.fftSize > 0 && tr.mag && tr.coherence;
+      if (!validTrace(a) || !validTrace(b)) return null;
+      const binA = a.sampleRate / a.fftSize, binB = b.sampleRate / b.fftSize;
+      const maxHz = Math.min(20000, a.sampleRate * 0.475, b.sampleRate * 0.475,
+        (a.mag.length - 1) * binA, (b.mag.length - 1) * binB);
+      let sum = 0, maxAbs = 0, coherenceSum = 0, count = 0;
+      for (let k = 1; k < a.mag.length; k++) {
+        const frequency = k * binA;
+        if (frequency < 20 || frequency > maxHz) continue;
+        const indexB = frequency / binB, lo = Math.floor(indexB), hi = Math.min(b.mag.length - 1, lo + 1);
+        if (lo < 1 || hi >= b.mag.length) continue;
+        const fraction = indexB - lo;
+        const magA = a.mag[k], magLo = b.mag[lo], magHi = b.mag[hi];
+        const cohA = a.coherence[k], cohLo = b.coherence[lo], cohHi = b.coherence[hi];
+        if (![magA, magLo, magHi, cohA, cohLo, cohHi].every(Number.isFinite)) continue;
+        const magB = magLo + (magHi - magLo) * fraction;
+        const cohB = cohLo + (cohHi - cohLo) * fraction;
+        const delta = magB - magA;
+        sum += delta; maxAbs = Math.max(maxAbs, Math.abs(delta));
+        coherenceSum += (DSP.clamp(cohA, 0, 1) + DSP.clamp(cohB, 0, 1)) / 2;
+        count++;
+      }
+      if (!count) return null;
+      return { traceA: a.name, traceB: b.name, meanDeltaDb: sum / count,
+        maxAbsDeltaDb: maxAbs, meanCoherence: coherenceSum / count,
+        bins: count, minHz: 20, maxHz };
+    },
+
+    _paintComparisonSummary() {
+      const target = this.el.tfCompareSummary;
+      if (!target) return;
+      const stats = this._comparisonStats();
+      if (!stats) {
+        target.textContent = this.traces.length < 2
+          ? 'Guarda dos trazas para ver la comparación cuantitativa (B − A).'
+          : 'No hay suficientes datos válidos en el rango de frecuencia común para comparar.';
+        return;
+      }
+      target.textContent = stats.traceB + ' − ' + stats.traceA +
+        ' · Δ media: ' + stats.meanDeltaDb.toFixed(2) + ' dB' +
+        ' · Δ máxima: ' + stats.maxAbsDeltaDb.toFixed(2) + ' dB' +
+        ' · coherencia media: ' + stats.meanCoherence.toFixed(2) +
+        ' · ' + stats.bins + ' bins válidos (' + Math.round(stats.minHz) + '–' +
+        Math.round(stats.maxHz) + ' Hz).';
+    },
+
     draw() {
       const section = document.getElementById('mod-tf');
+      this._paintComparisonSummary();
       if (section && !section.classList.contains('active')) return;
       const fitted = BAU.fitCanvas(this.el.cvTf); if (!fitted) return;
       const { ctx, w, h } = fitted;
