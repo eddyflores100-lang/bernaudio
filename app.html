@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=VT323&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/app.css?v=ca41808910a0" />
+  <link rel="stylesheet" href="css/app.css?v=42cb670fe35c" />
 </head>
 <body>
 
@@ -399,7 +399,7 @@
         <label class="field-label" for="fieldEvent">Nombre del evento / recinto</label>
         <input class="field-input" id="fieldEvent" maxlength="80" placeholder="Ej.: Festival · escenario principal" />
         <div class="field-weather-toolbar">
-          <div><strong>Ambiente exterior</strong><p id="fieldWeatherStatus" class="field-muted">No consultado. Al autorizar ubicación y actualizar una vez, el clima se renovará automáticamente cada 15 minutos mientras uses Campo / zonas.</p></div>
+          <div><strong>Ambiente exterior</strong><p id="fieldWeatherStatus" class="field-muted">No consultado. Pulsa actualizar y autoriza ubicación; después se renovará automáticamente cada 15 minutos mientras la pestaña esté abierta.</p></div>
           <button class="btn btn-primary" id="fieldWeatherRefresh" type="button">Actualizar ambiente</button>
         </div>
         <div class="field-weather-grid" id="fieldWeatherGrid" aria-live="polite"></div>
@@ -407,21 +407,21 @@
       </div>
       <div class="field-card">
         <h3>Registrar una posición de escucha</h3>
-        <div class="field-stage-map" role="group" aria-label="Plano simplificado para seleccionar una zona">
+        <div class="field-stage-map" role="group" aria-label="Plano táctil de posiciones del público">
           <div class="field-stage">ESCENARIO / PA</div>
           <div class="field-zone-grid">
-            <button type="button" class="field-zone-preset" data-zone="Frente izquierda">Frente izquierda</button>
-            <button type="button" class="field-zone-preset" data-zone="Frente centro">Frente centro</button>
-            <button type="button" class="field-zone-preset" data-zone="Frente derecha">Frente derecha</button>
-            <button type="button" class="field-zone-preset" data-zone="Centro izquierda">Centro izquierda</button>
-            <button type="button" class="field-zone-preset" data-zone="Centro">Centro</button>
-            <button type="button" class="field-zone-preset" data-zone="Centro derecha">Centro derecha</button>
-            <button type="button" class="field-zone-preset" data-zone="Fondo izquierda">Fondo izquierda</button>
-            <button type="button" class="field-zone-preset" data-zone="Fondo">Fondo</button>
-            <button type="button" class="field-zone-preset" data-zone="Fondo derecha">Fondo derecha</button>
+            <button type="button" class="field-zone-preset" data-zone="Frente izquierda" aria-pressed="false"><span>Frente izquierda</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Frente centro" aria-pressed="false"><span>Frente centro</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Frente derecha" aria-pressed="false"><span>Frente derecha</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Centro izquierda" aria-pressed="false"><span>Centro izquierda</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Centro" aria-pressed="false"><span>Centro</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Centro derecha" aria-pressed="false"><span>Centro derecha</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Fondo izquierda" aria-pressed="false"><span>Fondo izquierda</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Fondo" aria-pressed="false"><span>Fondo</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Fondo derecha" aria-pressed="false"><span>Fondo derecha</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
           </div>
-          <button type="button" class="field-zone-preset field-zone-foh" data-zone="FOH">FOH · control</button>
-          <p class="field-muted">Toca una posición para seleccionarla o escribe un nombre personalizado debajo.</p>
+          <button type="button" class="field-zone-preset field-zone-foh" data-zone="FOH" aria-pressed="false"><span>FOH · control</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+          <p class="field-muted">Toca una posición para seleccionarla; puedes registrar más de una lectura en la misma zona.</p>
         </div>
         <label class="field-label" for="fieldZone">Zona seleccionada / personalizada</label>
         <input class="field-input" id="fieldZone" maxlength="48" placeholder="Ej.: FOH, centro, lateral izquierdo, fondo…" />
@@ -487,8 +487,8 @@
   <script src="js/app/modules-tf.js?v=996e3734e779"></script>
   <script src="js/app/modules-delay.js?v=7b1efd5d2a6e"></script>
   <script src="js/app/modules-cal.js?v=cd1fd4b68700"></script>
-  <script src="js/app/ui.js?v=11362c19e048"></script>
-  <script src="js/app/field-mode.js?v=7bd0fcf7436a"></script>
+  <script src="js/app/ui.js?v=3d92667dcc2a"></script>
+  <script src="js/app/field-mode.js?v=dc817bb670b9"></script>
   <script src="js/app/assistant.js?v=032e9c7f17e2"></script>
   <script src="js/app/pwa.js?v=b33e1dee4cba"></script>
   <script>
