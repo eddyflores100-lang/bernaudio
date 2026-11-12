@@ -192,7 +192,7 @@
         const name = document.createElement('span'); name.textContent = label;
         const number = document.createElement('strong');
         number.textContent = value == null ? '—' : (typeof value === 'number' ? value.toFixed(label === 'Presión' ? 1 : 0) : String(value)) + (unit ? ' ' + unit : '');
-        card.appendChild(name).appendChild(number); grid.appendChild(card);
+        card.appendChild(name); card.appendChild(number); grid.appendChild(card);
       }
     },
     renderPoints() {
@@ -214,7 +214,7 @@
         const title = document.createElement('strong'); title.textContent = (index + 1) + '. ' + point.zone;
         const time = document.createElement('time'); time.dateTime = point.capturedAt;
         time.textContent = new Date(point.capturedAt).toLocaleTimeString();
-        header.appendChild(title).appendChild(time);
+        header.appendChild(title); header.appendChild(time);
         const stats = document.createElement('div'); stats.className = 'field-point-stats';
         const leq = document.createElement('span');
         leq.textContent = 'Leq ' + (Number.isFinite(point.level?.leqDb) ? point.level.leqDb.toFixed(1) + ' dB' : '—');
@@ -223,8 +223,8 @@
         delta.textContent = index === 0 ? 'Referencia' : difference == null ? 'Δ —' : 'Δ ' + (difference > 0 ? '+' : '') + difference.toFixed(1) + ' dB vs. primer punto';
         const calibrated = document.createElement('span');
         calibrated.textContent = point.level?.calibrated ? 'Offset declarado' : 'Nivel relativo / sin calibrar';
-        stats.appendChild(leq).appendChild(delta).appendChild(calibrated);
-        card.appendChild(header).appendChild(stats);
+        stats.appendChild(leq); stats.appendChild(delta); stats.appendChild(calibrated);
+        card.appendChild(header); card.appendChild(stats);
         if (point.environment?.conditions) {
           const env = point.environment.conditions;
           const line = document.createElement('p'); line.className = 'field-point-env';
