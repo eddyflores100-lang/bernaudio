@@ -48,7 +48,11 @@ export default {
     const length = Number(request.headers.get("content-length") || 0);
     if (length > 24000) return json({ error: "La solicitud supera el límite permitido." }, 413, origin);
     let body;
-    try { body = await request.json(); } catch { return json({ error: "JSON no válido." }, 400, origin); }
+    try {
+      const raw = await request.text();
+      if (raw.length > 24000) return json({ error: "La solicitud supera el límite permitido." }, 413, origin);
+      body = JSON.parse(raw);
+    } catch { return json({ error: "JSON no válido." }, 400, origin); }
     if (!body || typeof body !== "object" || !validMessages(body.messages)) return json({ error: "Conversación no válida o demasiado larga." }, 400, origin);
     const context = body.context && typeof body.context === "object" ? JSON.stringify(body.context).slice(0, 9000) : "{}";
     const messages = [
@@ -56,7 +60,7 @@ export default {
       ...body.messages.map(m => ({ role: m.role, content: m.content.trim() }))
     ];
     try {
-      const result = await env.AI.run(MODEL, { messages, max_tokens: 850, temperature: 0.25, reasoning_effort: "low", store: false });
+      const result = await env.AI.run(MODEL, { messages, max_tokens: 850, temperature: 0.25 });
       const answer = result?.choices?.[0]?.message?.content ?? result?.response ?? "";
       if (typeof answer !== "string" || !answer.trim()) return json({ error: "La IA no devolvió una respuesta utilizable." }, 502, origin);
       return json({ answer: answer.trim(), model: MODEL }, 200, origin);
