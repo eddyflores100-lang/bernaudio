@@ -50,3 +50,15 @@ test('assistant sends bounded context to Workers AI and returns its answer', asy
   assert.equal(invocation.input.messages[1].role, 'user');
   assert.match(invocation.input.messages[0].content, /calibrated/);
 });
+
+
+test('assistant never returns internal reasoning when the model omits final content', async () => {
+  const response = await worker.fetch(new Request('https://worker.example/api/assistant', {
+    method: 'POST', headers: { origin: 'https://bernaudio.utalabs.tech', 'content-type': 'application/json' },
+    body: JSON.stringify({ messages: [{ role: 'user', content: 'hola' }] })
+  }), { AI: { run: async () => ({
+    choices: [{ finish_reason: 'length', message: { content: null, reasoning: 'private internal reasoning' } }]
+  }) } });
+  assert.equal(response.status, 502);
+  assert.doesNotMatch(await response.text(), /private internal reasoning/);
+});
