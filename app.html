@@ -349,12 +349,22 @@
           </ul>
         </div>
         <div class="help-card">
-          <h4>📱 iPad</h4>
+          <h4>📱 Teléfono y tablet · modo de campo</h4>
           <ul>
-            <li>Safari actualizado o Chrome para iOS, según las capacidades del dispositivo y sus permisos de micrófono.</li>
-            <li>Micrófono externo o interfaz USB‑C / Lightning (audio clase compatible): aparece en <b>Entrada</b>.</li>
-            <li>SPL, RTA, espectrograma, TF con referencia interna y delay finder secuencial dependen del navegador, el hardware y la estabilidad del reloj de audio.</li>
-            <li>Consejo: abre en pantalla completa desde «Añadir a pantalla de inicio».</li>
+            <li>Abre BernAudio por HTTPS en Safari (iPhone/iPad) o Chrome (Android). Autoriza el micrófono cuando lo solicite el navegador.</li>
+            <li>El micrófono integrado permite comprobaciones rápidas y comparaciones relativas. La respuesta y el procesamiento varían por modelo; no se debe asumir un SPL certificado.</li>
+            <li>Para decisiones de PA y valores SPL fiables, usa un micrófono de medición externo calibrado. Si cambias de teléfono o micrófono, calibra cada cadena por separado.</li>
+            <li>La referencia física de dos canales depende de que el dispositivo y navegador expongan dos canales reales. Muchos teléfonos solo entregan mono.</li>
+            <li>Para instalar, usa «Añadir a pantalla de inicio». La pantalla puede mantenerse activa durante la captura si el navegador admite Screen Wake Lock.</li>
+          </ul>
+        </div>
+        <div class="help-card">
+          <h4>🌦️ Ambiente y recorridos del show</h4>
+          <ul>
+            <li>En <b>Campo / zonas</b> registra FOH, centro, laterales y fondo con el mismo equipo y configuración.</li>
+            <li>La API meteorológica adjunta presión, temperatura, humedad y viento como contexto externo. No lee el barómetro del teléfono; necesita el secreto <code>WEATHERAPI_KEY</code> en Cloudflare.</li>
+            <li>El GPS es opcional y solo se guarda en el informe si marcas la casilla correspondiente.</li>
+            <li>La presión barométrica por sí sola suele influir menos que el viento y los gradientes térmicos. Para condiciones exactas junto al escenario, utiliza una estación ambiental local.</li>
           </ul>
         </div>
         <div class="help-card">
@@ -408,7 +418,7 @@
         <p id="fieldStatus" class="field-status" role="status" aria-live="polite">Inicia la captura de micrófono para registrar puntos de escucha.</p>
       </div>
       <div class="field-card">
-        <div class="field-list-heading"><h3>Mapa comparativo de posiciones</h3><button class="btn btn-sm btn-danger" type="button" id="fieldClearPoints">Vaciar zonas</button></div>
+        <div class="field-list-heading"><h3>Zonas registradas y comparación</h3><button class="btn btn-sm btn-danger" type="button" id="fieldClearPoints">Vaciar zonas</button></div>
         <div id="fieldPointList" class="field-point-list" aria-live="polite"><p class="field-muted">Todavía no hay zonas registradas.</p></div>
       </div>
       <div class="field-card field-caution">
