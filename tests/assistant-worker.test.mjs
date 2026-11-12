@@ -39,11 +39,14 @@ test('assistant sends bounded context to Workers AI and returns its answer', asy
     })
   }), { AI: { run: async (model, input) => {
     invocation = { model, input };
-    return { choices: [{ message: { content: 'El nivel es estimado porque no está calibrado.' } }] };
+    return { choices: [{ message: { content: 'El nivel es estimado porque no está calibrado.', reasoning: 'texto interno separado' } }] };
   } } });
   assert.equal(response.status, 200);
   assert.match((await response.json()).answer, /no está calibrado/);
   assert.equal(invocation.model, '@cf/qwen/qwen3.8-27b');
+  assert.equal(invocation.input.reasoning_effort, 'low');
+  assert.equal(invocation.input.store, false);
+  assert.equal(invocation.input.max_tokens, 1200);
   assert.equal(invocation.input.messages[1].role, 'user');
   assert.match(invocation.input.messages[0].content, /calibrated/);
 });
