@@ -488,3 +488,41 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible { 
  .field-zone-preset strong{font-size:15px}
  .field-zone-preset small{font-size:8px}
 }
+
+/* Installable app, safe updates and recoverable field drafts */
+.pwa-install-start{width:100%;margin-top:12px;min-height:44px;border-color:rgba(255,162,62,.35);color:#ffe9c4}
+.pwa-modal{position:fixed;inset:0;z-index:150;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.78);backdrop-filter:blur(8px)}
+.pwa-modal[hidden],.pwa-update-banner[hidden],.pwa-network-status[hidden]{display:none!important}
+.pwa-dialog{width:min(560px,100%);max-height:min(88dvh,760px);overflow:auto;padding:20px;border:1px solid rgba(255,162,62,.36);border-radius:18px;background:#13181e;color:#e8edf2;box-shadow:0 28px 100px rgba(0,0,0,.62)}
+.pwa-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px}
+.pwa-eyebrow{font-size:10px;letter-spacing:.13em;color:#ffa23e}
+.pwa-dialog h2{margin-top:5px;font-size:clamp(21px,4vw,27px);color:#ffe9c4}
+.pwa-close{width:42px;height:42px;border:1px solid #3b4652;border-radius:10px;background:#202833;color:#e8edf2;font-size:25px;cursor:pointer}
+.pwa-guide-intro,.pwa-guide-note{font-size:12px;line-height:1.55;color:#aeb9c6}
+.pwa-platform-steps{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.pwa-platform-steps article{padding:13px;border:1px solid #303a45;border-radius:12px;background:#1b232c}
+.pwa-platform-steps h3{font-size:13px;color:#ffe0b4;margin-bottom:8px}
+.pwa-platform-steps ol{padding-left:18px;display:grid;gap:7px;color:#c3cdd8;font-size:11px;line-height:1.5}
+.pwa-platform-steps b{color:#ffe9c4}
+.pwa-guide-note{padding:11px;border-radius:9px;background:#1b232c}
+.pwa-guide-done{width:100%;min-height:46px;margin-top:14px}
+.pwa-update-banner{position:relative;z-index:40;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:9px 12px;background:#332517;border-bottom:1px solid rgba(255,162,62,.4);color:#ffe9c4;font-size:11px}
+.pwa-update-banner .btn{min-height:38px}
+.pwa-network-status{padding:3px 7px;border:1px solid rgba(45,212,191,.25);border-radius:999px;font-size:9px;color:#83e6d8;white-space:nowrap}
+.pwa-network-status.is-offline{border-color:rgba(255,162,62,.45);color:#ffc27c;background:rgba(255,162,62,.08)}
+.field-draft-card{border-color:rgba(45,212,191,.24)}
+.field-draft-actions{display:flex;gap:8px;flex-wrap:wrap}
+.field-draft-actions .btn{min-height:40px}
+.field-draft-actions button[hidden]{display:none!important}
+@media(max-width:720px){
+ .pwa-modal{align-items:end;padding:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+ .pwa-dialog{max-height:88dvh;padding:15px;border-radius:17px 17px 12px 12px}
+ .pwa-platform-steps{grid-template-columns:1fr;gap:8px}
+ .pwa-platform-steps article{padding:11px}
+ .pwa-update-banner{justify-content:flex-start;gap:7px;padding:8px 10px}
+ .pwa-update-banner span{flex:1 0 100%;line-height:1.4}
+ .pwa-update-banner .btn{flex:1}
+ .pwa-network-status{font-size:9px}
+ .field-draft-actions{display:grid;grid-template-columns:1fr}
+ .field-draft-actions .btn{width:100%}
+}
