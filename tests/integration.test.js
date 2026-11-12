@@ -500,3 +500,15 @@ test('BernAudio AI panel mounts without interfering with measurement controls', 
   assert.equal(launcher.getAttribute('aria-expanded'), 'false');
   h.assertHealthy();
 });
+
+
+test('BernAudio AI uses a full-width accessible message editor without the visible redundant label', async () => {
+  const h = await harness();
+  const panel = h.document.querySelector('#baAiPanel');
+  const input = h.document.querySelector('#baAiInput');
+  assert.ok(panel); assert.ok(input);
+  assert.equal(input.getAttribute('aria-label'), 'Escribe tu pregunta para BernAudio AI');
+  assert.equal(input.getAttribute('rows'), '4');
+  assert.doesNotMatch(panel.textContent, /Pregunta para BernAudio AI/);
+  h.assertHealthy();
+});
