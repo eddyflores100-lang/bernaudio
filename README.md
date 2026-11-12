@@ -47,7 +47,8 @@ solo cubre la interfaz y los recursos estáticos que se hayan almacenado antes.
 
 El diferencial dB se compara con el primer punto de la sesión. Es una
 comparación relativa si no está calibrado. No compara de manera metrológica
-micrófonos o teléfonos diferentes.
+micrófonos o teléfonos diferentes. El plano de zonas es esquemático: representa
+posiciones de escucha, no una cartografía geográfica ni una predicción de cobertura.
 
 ### Requisitos del clima
 
