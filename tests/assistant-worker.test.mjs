@@ -97,7 +97,7 @@ test('environment endpoint returns a sanitized weather snapshot and keeps provid
     return new Response(JSON.stringify({
       location: { name: 'Quito', region: 'Pichincha', country: 'Ecuador', localtime: '2026-11-12 13:00' },
       current: {
-        temp_c: 19.5, humidity: 62, pressure_mb: 1015.8,
+        temp_c: 19.5, humidity: 62, pressure_mb: 1015.8, last_updated: '2026-11-12 13:00',
         wind_kph: 8.4, wind_degree: 210, wind_dir: 'SSW',
         gust_kph: 12.3, cloud: 42, precip_mm: 0, vis_km: 10,
         condition: { text: 'Parcialmente nublado' }
@@ -114,6 +114,7 @@ test('environment endpoint returns a sanitized weather snapshot and keeps provid
     assert.equal(payload.source, 'WeatherAPI.com');
     assert.equal(payload.location.name, 'Quito');
     assert.equal(payload.conditions.pressureHpa, 1015.8);
+    assert.equal(payload.observedAt, '2026-11-12 13:00');
     assert.equal(payload.conditions.temperatureC, 19.5);
     assert.equal(payload.conditions.windKph, 8.4);
     assert.equal(requested.searchParams.get('key'), 'test-secret');
