@@ -2,7 +2,7 @@
   'use strict';
   const ENDPOINT = 'https://bernaudio-ai.eddyflores100.workers.dev/api/assistant';
   const byId = id => document.getElementById(id);
-  const safeNumber = value => Number.isFinite(Number(value)) ? Number(value) : null;
+  const safeNumber = value => value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
   const sample = (values, count = 18) => {
     if (!values || !values.length) return [];
     const step = Math.max(1, Math.floor(values.length / count));
@@ -55,7 +55,7 @@
     const panel = document.createElement('section');
     panel.id = 'baAiPanel'; panel.className = 'ba-ai-panel'; panel.hidden = true;
     panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Asistente BernAudio AI');
-    panel.innerHTML = '<header class="ba-ai-head"><div><strong>BernAudio AI</strong><small>Análisis asistido · Workers AI</small></div><button type="button" class="ba-ai-close" aria-label="Cerrar asistente">×</button></header><div class="ba-ai-note">Comparte solo un resumen numérico de la medición actual. No se envía audio ni se controla tu equipo.</div><div class="ba-ai-messages" id="baAiMessages" aria-live="polite"><p class="ba-ai-welcome">Puedo ayudarte a interpretar el RTA, SPL, transferencia, fase, coherencia y sesiones guardadas. ¿Qué quieres revisar?</p></div><form class="ba-ai-form" id="baAiForm"><label class="sr-only" for="baAiInput">Pregunta para BernAudio AI</label><textarea id="baAiInput" rows="2" maxlength="1200" placeholder="Ej.: ¿Qué indica esta medición?" required></textarea><button id="baAiSend" type="submit">Enviar</button></form><p class="ba-ai-foot">Las recomendaciones son orientativas; verifica con mediciones repetibles y calibración adecuada.</p>';
+    panel.innerHTML = '<header class="ba-ai-head"><div><strong>BernAudio AI</strong><small>Análisis asistido · Workers AI</small></div><button type="button" class="ba-ai-close" aria-label="Cerrar asistente">×</button></header><div class="ba-ai-note">Comparte solo un resumen numérico de la medición actual. No se envía audio ni se controla tu equipo.</div><div class="ba-ai-messages" id="baAiMessages" aria-live="polite"><p class="ba-ai-welcome">Puedo ayudarte a interpretar el RTA, SPL, transferencia, fase, coherencia y sesiones guardadas. ¿Qué quieres revisar?</p></div><form class="ba-ai-form" id="baAiForm"><textarea id="baAiInput" aria-label="Escribe tu pregunta para BernAudio AI" rows="4" maxlength="1600" placeholder="Escribe aquí tu pregunta…" required></textarea><div class="ba-ai-form-actions"><span class="ba-ai-input-hint">Enter para enviar · Shift + Enter para nueva línea</span><button id="baAiSend" type="submit">Enviar</button></div></form><p class="ba-ai-foot">Las recomendaciones son orientativas; verifica con mediciones repetibles y calibración adecuada.</p>';
     const mount = document.body || document.documentElement;
     mount.appendChild(launcher); mount.appendChild(panel);
     const messages = [], feed = byId('baAiMessages'), form = byId('baAiForm'), input = byId('baAiInput'), send = byId('baAiSend');
@@ -68,6 +68,12 @@
       const text = document.createElement('p'); text.textContent = content;
       item.append(label, text); feed.append(item); feed.scrollTop = feed.scrollHeight;
     }
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        form.requestSubmit();
+      }
+    });
     form.addEventListener('submit', async event => {
       event.preventDefault();
       const question = input.value.trim();
@@ -76,17 +82,28 @@
       if (messages.length > 10) messages.splice(0, messages.length - 10);
       addMessage('user', question); input.value = ''; send.disabled = true; send.textContent = 'Analizando…';
       try {
-        const response = await fetch(ENDPOINT, {
-          method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ messages, context: measurementContext() })
-        });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 45000);
+        let response;
+        try {
+          response = await fetch(ENDPOINT, {
+            method: 'POST', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ messages, context: measurementContext() }),
+            signal: controller.signal
+          });
+        } finally { clearTimeout(timeout); }
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error || 'Servicio temporalmente no disponible.');
         const answer = String(payload.answer || '').slice(0, 7000);
         if (!answer) throw new Error('La IA devolvió una respuesta vacía.');
         messages.push({ role: 'assistant', content: answer }); addMessage('assistant', answer);
       } catch (error) {
-        addMessage('assistant', error.message || 'No se pudo conectar con BernAudio AI.');
+        const message = error?.name === 'AbortError'
+          ? 'El análisis tardó demasiado. Vuelve a intentarlo.'
+          : error instanceof TypeError
+            ? 'No se pudo conectar con el servidor de IA. La conexión pública ya está habilitada; recarga la página y prueba otra vez.'
+            : (error.message || 'No se pudo completar el análisis.');
+        addMessage('assistant', message);
       } finally { send.disabled = false; send.textContent = 'Enviar'; input.focus(); }
     });
   }
