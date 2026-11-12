@@ -295,3 +295,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible { 
   .start-btns .btn { width:100%; }
 }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; animation:none!important; scroll-behavior:auto!important; } }
+
+/* Quantitative A/B transfer-function comparison summary. */
+.tf-compare-summary { border-left: 3px solid var(--teal); font-family: var(--mono); font-size: 11px; }
