@@ -49,7 +49,7 @@ física de micrófonos e interfaces sigue siendo independiente.
 
 ## Contexto meteorológico de campo
 
-La ruta `GET /api/environment?lat=<lat>&lon=<lon>` consulta WeatherAPI.com
+La ruta `POST /api/environment` acepta latitud y longitud en un cuerpo JSON, no en la URL, para no incluir coordenadas en los registros de query strings. La observabilidad del Worker también redacta query strings. El Worker consulta WeatherAPI.com
 desde el Worker y devuelve ubicación, fecha de captura, presión, temperatura,
 humedad, viento y otros campos meteorológicos sanitizados. La clave debe quedar
 en un secreto Cloudflare llamado `WEATHERAPI_KEY`. No se envía al navegador.
