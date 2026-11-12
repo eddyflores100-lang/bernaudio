@@ -666,3 +666,42 @@ test('field GPS opt-in captures a fresh position for every measurement point', a
   await h.click('btnStop');
   h.assertHealthy();
 });
+
+
+test('field drafts autosave locally and can be restored or deleted explicitly', async () => {
+  const h = await harness();
+  await h.click('btnStart');
+  await h.click('tab-field');
+  h.get('fieldEvent').value = 'Concierto de prueba';
+  h.get('fieldEvent').dispatchEvent({ type: 'input' });
+  h.get('fieldZone').value = 'FOH';
+  h.capture(96000, sine());
+  await h.click('fieldSavePoint');
+
+  const key = 'bernaudio.fieldDraft.v1';
+  const raw = h.env.localStorage.getItem(key);
+  assert.ok(raw, 'field point should be saved to local storage');
+  const saved = JSON.parse(raw);
+  assert.equal(saved.schemaVersion, 1);
+  assert.equal(saved.data.eventName, 'Concierto de prueba');
+  assert.equal(saved.data.points.length, 1);
+  assert.equal(saved.data.points[0].zone, 'FOH');
+  assert.equal(saved.data.points[0].location, null);
+  assert.doesNotMatch(raw, /rawAudio|waveform|Float32Array/, 'the local draft must not contain raw audio');
+
+  const resumed = await harness();
+  resumed.env.localStorage.setItem(key, raw);
+  assert.equal(resumed.env.FIELD.loadDraft(), true);
+  assert.equal(resumed.env.FIELD.points.length, 0, 'a previous draft must not be restored without user action');
+  assert.equal(resumed.get('fieldRestoreDraft').hidden, false);
+  await resumed.click('fieldRestoreDraft');
+  assert.equal(resumed.env.FIELD.points.length, 1);
+  assert.equal(resumed.get('fieldEvent').value, 'Concierto de prueba');
+
+  await resumed.click('fieldDeleteDraft');
+  assert.equal(resumed.env.localStorage.getItem(key), null);
+  assert.equal(resumed.env.FIELD.points.length, 1, 'deleting the local backup must not erase the active in-memory session');
+  await h.click('btnStop');
+  h.assertHealthy();
+  resumed.assertHealthy();
+});
