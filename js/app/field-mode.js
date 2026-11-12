@@ -40,17 +40,13 @@
       this.ui.zone.addEventListener('input', () => {
         this.ui.presets.forEach(item => item.setAttribute('aria-pressed', String(item.dataset.zone === this.ui.zone.value)));
       });
-      this.ui.event.addEventListener('change', () => this.persistDraft());
+      this.ui.event.addEventListener('input', () => this.persistDraft());
       this.ui.zone.addEventListener('keydown', event => {
         if (event.key === 'Enter') { event.preventDefault(); this.savePoint(); }
       });
       this.renderPoints();
       this.renderWeather();
       this.loadDraft();
-      global.addEventListener?.('pagehide', () => this.persistDraft());
-      global.document?.addEventListener?.('visibilitychange', () => {
-        if (global.document.visibilityState === 'hidden') this.persistDraft();
-      });
       global.document?.addEventListener?.('visibilitychange', () => {
         if (global.document.visibilityState !== 'visible') return;
         if (global.AE?.running) this.keepScreenAwake();
@@ -78,9 +74,10 @@
     persistDraft() {
       if (!this.ui) return false;
       try {
+        if (!global.localStorage) throw new Error('Almacenamiento local no disponible.');
         const data = this.exportData();
         if (!data.points.length && !data.eventName) {
-          global.localStorage?.removeItem(DRAFT_KEY);
+          global.localStorage.removeItem(DRAFT_KEY);
           if (this.ui.draftStatus) this.ui.draftStatus.textContent = 'No hay borrador guardado.';
           if (this.ui.restoreDraft) this.ui.restoreDraft.hidden = true;
           if (this.ui.deleteDraft) this.ui.deleteDraft.hidden = true;
@@ -92,7 +89,7 @@
           savedAt: new Date().toISOString(),
           data
         };
-        global.localStorage?.setItem(DRAFT_KEY, JSON.stringify(payload));
+        global.localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
         if (this.ui.draftStatus) this.ui.draftStatus.textContent =
           'Borrador guardado en este dispositivo · ' + new Date(payload.savedAt).toLocaleTimeString() +
           ' · ' + data.points.length + ' zonas. No se envía a la nube.';
@@ -108,7 +105,8 @@
     loadDraft() {
       if (!this.ui) return false;
       try {
-        const raw = global.localStorage?.getItem(DRAFT_KEY);
+        if (!global.localStorage) return false;
+        const raw = global.localStorage.getItem(DRAFT_KEY);
         if (!raw) return false;
         const saved = JSON.parse(raw);
         if (saved?.schemaVersion !== 1 || !saved.data) throw new Error('Borrador no válido.');
