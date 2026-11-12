@@ -26,11 +26,23 @@ analizar una entrada real y `subs.html` para configurar una simulación de subgr
 
 ## Modo de campo para teléfono y tablet
 
-Abre [el analizador](app.html) desde Safari en iPhone/iPad o Chrome en Android
-a través de HTTPS. El diseño móvil ofrece controles de audio plegables, pestañas
-horizontales, botones táctiles y gráficos adaptados a pantallas pequeñas. Puede
-instalarse en la pantalla de inicio como aplicación web; el modo sin conexión
-solo cubre la interfaz y los recursos estáticos que se hayan almacenado antes.
+Abre [el analizador](app.html) a través de HTTPS. BernAudio se instala como una
+**Progressive Web App (PWA)** desde el navegador; no es todavía un APK o IPA
+publicado en las tiendas de aplicaciones.
+
+- **Android:** Chrome puede mostrar «Instalar app». Si no aparece, abre el menú
+  ⋮ y busca «Instalar aplicación» o «Añadir a pantalla de inicio».
+- **iPhone/iPad:** abre el sitio en Safari, pulsa Compartir y elige «Añadir a
+  pantalla de inicio». Conserva «Abrir como app web» cuando se muestre.
+- **Tablets y escritorio:** usa la opción de instalar que ofrece el navegador.
+
+La app tiene iconos rasterizados y vectoriales, accesos directos a Campo y SPL,
+un indicador de conexión y un aviso de actualización que no fuerza la recarga
+durante una medición. Abre BernAudio una vez con internet para almacenar la
+interfaz y sus módulos de audio. Después puede abrir la interfaz y realizar
+capturas locales sin conexión, siempre que el navegador conserve la caché y
+permita el micrófono. El asistente IA, el clima y las actualizaciones necesitan
+internet.
 
 ### Medir una presentación por zonas
 
@@ -49,6 +61,17 @@ El diferencial dB se compara con el primer punto de la sesión. Es una
 comparación relativa si no está calibrado. No compara de manera metrológica
 micrófonos o teléfonos diferentes. El plano de zonas es esquemático: representa
 posiciones de escucha, no una cartografía geográfica ni una predicción de cobertura.
+
+### Recuperación y respaldo local
+
+El modo Campo guarda automáticamente el borrador de las zonas en el
+almacenamiento local del dispositivo. Al volver a abrir la app, debes pulsar
+«Recuperar borrador» para restaurarlo; no se incorpora en silencio a una nueva
+sesión. Puedes eliminar el borrador local desde Campo / zonas. Si habilitaste
+GPS en una medición, esas coordenadas también pueden quedar en el borrador local.
+El borrador no contiene audio bruto ni se transmite a la nube. Exporta el JSON
+de la sesión como copia independiente; borrar los datos del navegador elimina
+el borrador y la calibración local.
 
 ### Requisitos del clima
 
@@ -147,8 +170,12 @@ mediciones a un servidor. La calibración de nivel y la curva del micrófono pue
 persistir en `localStorage`; se eliminan borrando los datos del sitio. Las
 exportaciones se descargan al dispositivo.
 
-Cargar el sitio realiza solicitudes al alojamiento y a Google Fonts. No hay un
-modo de instalación sin conexión ni se garantiza la recarga sin red. Consulta
+Cargar el sitio realiza solicitudes al alojamiento y a Google Fonts. El
+Service Worker almacena solo el shell y recursos estáticos del mismo origen;
+no almacena peticiones POST, la API ambiental ni conversaciones del asistente.
+El primer uso e instalación requieren conexión. La disponibilidad de captura
+offline depende de que el navegador conserve la caché, conceda el micrófono y
+mantenga la aplicación abierta. Consulta
 [Privacidad](privacy.html), [Términos](terms.html) y [Licencias](licencias.html).
 
 ## Código
