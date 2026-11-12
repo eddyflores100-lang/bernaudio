@@ -53,7 +53,8 @@
     panel.id = 'baAiPanel'; panel.className = 'ba-ai-panel'; panel.hidden = true;
     panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Asistente BernAudio AI');
     panel.innerHTML = '<header class="ba-ai-head"><div><strong>BernAudio AI</strong><small>Análisis asistido · Workers AI</small></div><button type="button" class="ba-ai-close" aria-label="Cerrar asistente">×</button></header><div class="ba-ai-note">Comparte solo un resumen numérico de la medición actual. No se envía audio ni se controla tu equipo.</div><div class="ba-ai-messages" id="baAiMessages" aria-live="polite"><p class="ba-ai-welcome">Puedo ayudarte a interpretar el RTA, SPL, transferencia, fase, coherencia y sesiones guardadas. ¿Qué quieres revisar?</p></div><form class="ba-ai-form" id="baAiForm"><label class="sr-only" for="baAiInput">Pregunta para BernAudio AI</label><textarea id="baAiInput" rows="2" maxlength="1200" placeholder="Ej.: ¿Qué indica esta medición?" required></textarea><button id="baAiSend" type="submit">Enviar</button></form><p class="ba-ai-foot">Las recomendaciones son orientativas; verifica con mediciones repetibles y calibración adecuada.</p>';
-    document.body.append(launcher, panel);
+    const mount = document.body || document.documentElement;
+    mount.appendChild(launcher); mount.appendChild(panel);
     const messages = [], feed = byId('baAiMessages'), form = byId('baAiForm'), input = byId('baAiInput'), send = byId('baAiSend');
     const close = () => { panel.hidden = true; launcher.setAttribute('aria-expanded', 'false'); launcher.focus(); };
     launcher.addEventListener('click', () => { panel.hidden = !panel.hidden; launcher.setAttribute('aria-expanded', String(!panel.hidden)); if (!panel.hidden) input.focus(); });
