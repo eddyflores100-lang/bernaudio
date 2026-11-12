@@ -489,7 +489,7 @@ test('loading and toggling a real calibration file resets measurement history an
 
 test('BernAudio AI panel mounts without interfering with measurement controls', async () => {
   const h = await harness();
-  const launcher = h.get('baAiLauncher'), panel = h.get('baAiPanel');
+  const launcher = h.document.querySelector('#baAiLauncher'), panel = h.document.querySelector('#baAiPanel');
   assert.ok(launcher); assert.ok(panel);
   assert.equal(launcher.getAttribute('aria-expanded'), 'false');
   await launcher.click();
