@@ -122,7 +122,8 @@
   dismissUpdate?.addEventListener('click', () => { if (updateBanner) updateBanner.hidden = true; });
 
   const applyShortcut = () => {
-    const view = new URLSearchParams(window.location.search).get('view');
+    const match = String(window.location?.search || '').match(/[?&]view=(field|spl)(?:&|$)/);
+    const view = match?.[1];
     if (view === 'field' || view === 'spl') window.UI?.showTab?.(view);
   };
   if (document.readyState === 'loading') {
