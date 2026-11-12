@@ -31,6 +31,23 @@
       });
       this.renderPoints();
       this.renderWeather();
+      global.document?.addEventListener?.('visibilitychange', () => {
+        if (global.document.visibilityState === 'visible' && global.AE?.running) this.keepScreenAwake();
+      });
+      if (global.AE?.running) this.keepScreenAwake();
+    },
+    async keepScreenAwake() {
+      if (!global.navigator?.wakeLock?.request || this.wakeLock) return false;
+      try {
+        this.wakeLock = await global.navigator.wakeLock.request('screen');
+        this.wakeLock.addEventListener?.('release', () => { this.wakeLock = null; });
+        return true;
+      } catch (_) { this.wakeLock = null; return false; }
+    },
+    async releaseScreenAwake() {
+      if (!this.wakeLock) return;
+      const lock = this.wakeLock; this.wakeLock = null;
+      try { await lock.release(); } catch (_) {}
     },
     status(message) { if (this.ui?.note) this.ui.note.textContent = message; },
     async getLocation() {
@@ -234,8 +251,8 @@
         points: this.points.map(point => JSON.parse(JSON.stringify(point)))
       };
     },
-    importData(data) {
-      if (!data) { this.points = []; this.renderPoints(); return; }
+    validateData(data) {
+      if (!data) return { schemaVersion: 1, eventName: '', points: [] };
       if (data.schemaVersion !== 1 || typeof data.eventName !== 'string' ||
           !Array.isArray(data.points) || data.points.length > 80) throw new Error('Datos de zonas no válidos.');
       const points = data.points.map(point => {
@@ -245,8 +262,12 @@
           throw new Error('Un punto de medición está dañado.');
         return JSON.parse(JSON.stringify(point));
       });
-      this.ui.event.value = data.eventName.slice(0, 80);
-      this.points = points; this.renderPoints();
+      return { schemaVersion: 1, eventName: data.eventName.slice(0, 80), points };
+    },
+    importData(data) {
+      const validated = this.validateData(data);
+      this.ui.event.value = validated.eventName;
+      this.points = validated.points; this.renderPoints();
     },
     context() {
       return { eventName: String(this.ui?.event.value || '').slice(0, 80),
