@@ -2,6 +2,7 @@
 (function (global) {
   'use strict';
   const API = 'https://bernaudio-ai.eddyflores100.workers.dev/api/environment';
+  const DRAFT_KEY = 'bernaudio.fieldDraft.v1';
   const el = id => document.getElementById(id);
   const numberOrNull = value => value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
 
@@ -14,10 +15,14 @@
         weatherGrid: el('fieldWeatherGrid'), saveButton: el('fieldSavePoint'),
         resetButton: el('fieldResetLevel'), clearButton: el('fieldClearPoints'),
         pointCount: el('fieldPointCount'), list: el('fieldPointList'), note: el('fieldStatus'),
-        presets: document.querySelectorAll('.field-zone-preset')
+        presets: document.querySelectorAll('.field-zone-preset'),
+        draftStatus: el('fieldDraftStatus'), restoreDraft: el('fieldRestoreDraft'),
+        deleteDraft: el('fieldDeleteDraft')
       };
       if (!this.ui.event || !this.ui.zone) return;
       this.ui.weatherButton.addEventListener('click', () => this.refreshWeather());
+      this.ui.restoreDraft?.addEventListener('click', () => this.restoreDraft());
+      this.ui.deleteDraft?.addEventListener('click', () => this.deleteDraft());
       this.ui.presets.forEach(button => button.addEventListener('click', () => {
         this.ui.zone.value = button.dataset.zone || '';
         this.ui.presets.forEach(item => item.setAttribute('aria-pressed', String(item === button)));
@@ -29,17 +34,23 @@
         this.status('Intervalo SPL reiniciado. Toma una nueva lectura antes de registrar otra zona.');
       });
       this.ui.clearButton.addEventListener('click', () => {
-        this.points = []; this.renderPoints();
+        this.points = []; this.renderPoints(); this.persistDraft();
         this.status('Lista de zonas vaciada. Las mediciones originales del analizador no se modificaron.');
       });
       this.ui.zone.addEventListener('input', () => {
         this.ui.presets.forEach(item => item.setAttribute('aria-pressed', String(item.dataset.zone === this.ui.zone.value)));
       });
+      this.ui.event.addEventListener('change', () => this.persistDraft());
       this.ui.zone.addEventListener('keydown', event => {
         if (event.key === 'Enter') { event.preventDefault(); this.savePoint(); }
       });
       this.renderPoints();
       this.renderWeather();
+      this.loadDraft();
+      global.addEventListener?.('pagehide', () => this.persistDraft());
+      global.document?.addEventListener?.('visibilitychange', () => {
+        if (global.document.visibilityState === 'hidden') this.persistDraft();
+      });
       global.document?.addEventListener?.('visibilitychange', () => {
         if (global.document.visibilityState !== 'visible') return;
         if (global.AE?.running) this.keepScreenAwake();
@@ -64,6 +75,77 @@
       try { await lock.release(); } catch (_) {}
     },
     status(message) { if (this.ui?.note) this.ui.note.textContent = message; },
+    persistDraft() {
+      if (!this.ui) return false;
+      try {
+        const data = this.exportData();
+        if (!data.points.length && !data.eventName) {
+          global.localStorage?.removeItem(DRAFT_KEY);
+          if (this.ui.draftStatus) this.ui.draftStatus.textContent = 'No hay borrador guardado.';
+          if (this.ui.restoreDraft) this.ui.restoreDraft.hidden = true;
+          if (this.ui.deleteDraft) this.ui.deleteDraft.hidden = true;
+          this.pendingDraft = null;
+          return true;
+        }
+        const payload = {
+          schemaVersion: 1,
+          savedAt: new Date().toISOString(),
+          data
+        };
+        global.localStorage?.setItem(DRAFT_KEY, JSON.stringify(payload));
+        if (this.ui.draftStatus) this.ui.draftStatus.textContent =
+          'Borrador guardado en este dispositivo · ' + new Date(payload.savedAt).toLocaleTimeString() +
+          ' · ' + data.points.length + ' zonas. No se envía a la nube.';
+        if (this.ui.restoreDraft) this.ui.restoreDraft.hidden = true;
+        if (this.ui.deleteDraft) this.ui.deleteDraft.hidden = false;
+        return true;
+      } catch (_) {
+        if (this.ui.draftStatus) this.ui.draftStatus.textContent =
+          'No se pudo guardar el borrador local. Exporta la sesión JSON como copia de seguridad.';
+        return false;
+      }
+    },
+    loadDraft() {
+      if (!this.ui) return false;
+      try {
+        const raw = global.localStorage?.getItem(DRAFT_KEY);
+        if (!raw) return false;
+        const saved = JSON.parse(raw);
+        if (saved?.schemaVersion !== 1 || !saved.data) throw new Error('Borrador no válido.');
+        const data = this.validateData(saved.data);
+        if (!data.points.length) throw new Error('Borrador vacío.');
+        this.pendingDraft = { data, savedAt: String(saved.savedAt || '') };
+        if (this.ui.draftStatus) this.ui.draftStatus.textContent =
+          'Hay un borrador anterior de ' + data.points.length + ' zonas' +
+          (saved.savedAt ? ' · ' + new Date(saved.savedAt).toLocaleString() : '') +
+          '. Puedes recuperarlo o eliminarlo.';
+        if (this.ui.restoreDraft) this.ui.restoreDraft.hidden = false;
+        if (this.ui.deleteDraft) this.ui.deleteDraft.hidden = false;
+        return true;
+      } catch (_) {
+        global.localStorage?.removeItem(DRAFT_KEY);
+        if (this.ui.draftStatus) this.ui.draftStatus.textContent =
+          'El borrador local estaba dañado y se descartó. Importa una sesión JSON si tienes una copia.';
+        return false;
+      }
+    },
+    restoreDraft() {
+      if (!this.pendingDraft?.data) return false;
+      this.importData(this.pendingDraft.data);
+      this.ui.draftStatus.textContent = 'Borrador recuperado. Continúa la medición o exporta una copia.';
+      this.ui.restoreDraft.hidden = true;
+      this.ui.deleteDraft.hidden = false;
+      this.status('Se recuperaron ' + this.points.length + ' zonas desde el almacenamiento local de este dispositivo.');
+      return true;
+    },
+    deleteDraft() {
+      try { global.localStorage?.removeItem(DRAFT_KEY); } catch (_) {}
+      this.pendingDraft = null;
+      if (this.ui?.draftStatus) this.ui.draftStatus.textContent = 'Borrador local eliminado.';
+      if (this.ui?.restoreDraft) this.ui.restoreDraft.hidden = true;
+      if (this.ui?.deleteDraft) this.ui.deleteDraft.hidden = true;
+      return true;
+    },
     async getLocation() {
       if (!global.navigator?.geolocation) throw new Error('Este navegador no ofrece geolocalización. Puedes seguir midiendo sin GPS.');
       const position = await new Promise((resolve, reject) => {
@@ -209,6 +291,7 @@
       };
       this.points.push(point);
       this.renderPoints();
+      this.persistDraft();
       this.status('Zona "' + zone + '" registrada. Restablece el intervalo SPL antes de medir el siguiente punto.');
       return true;
     },
@@ -302,7 +385,7 @@
         }
         const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'btn btn-sm field-remove';
         remove.textContent = 'Quitar zona'; remove.addEventListener('click', () => {
-          this.points = this.points.filter(item => item.id !== point.id); this.renderPoints();
+          this.points = this.points.filter(item => item.id !== point.id); this.renderPoints(); this.persistDraft();
         });
         card.appendChild(remove); this.ui.list.appendChild(card);
       });
@@ -329,7 +412,7 @@
     importData(data) {
       const validated = this.validateData(data);
       this.ui.event.value = validated.eventName;
-      this.points = validated.points; this.renderPoints();
+      this.points = validated.points; this.renderPoints(); this.persistDraft();
     },
     context() {
       return { eventName: String(this.ui?.event.value || '').slice(0, 80),
