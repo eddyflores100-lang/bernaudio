@@ -47,7 +47,8 @@ test('PWA client handles install prompt, iOS fallback, connectivity and safe upd
   const source = read('js/app/pwa.js');
   assert.match(source, /beforeinstallprompt/);
   assert.match(source, /appinstalled/);
-  assert.match(source, /Añadir a pantalla de inicio/);
+  assert.match(source, /iPhone o iPad/);
+  assert.match(source, /showGuide/);
   assert.match(source, /navigator\.onLine/);
   assert.match(source, /controllerchange/);
   assert.match(source, /btnApplyPwaUpdate/);
