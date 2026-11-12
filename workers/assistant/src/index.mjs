@@ -70,7 +70,7 @@ export default {
       const message = result?.choices?.[0]?.message;
       const content = message?.content ?? result?.response ?? "";
       const answer = Array.isArray(content)
-        ? content.map(part => typeof part === "string" ? part : part?.text || "").join("\\n")
+        ? content.map(part => typeof part === "string" ? part : part?.text || "").join("\n")
         : content;
       if (typeof answer !== "string" || !answer.trim()) {
         return json({ error: "La IA no logró completar una respuesta. Inténtalo de nuevo." }, 502, origin);
