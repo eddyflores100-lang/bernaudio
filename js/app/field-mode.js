@@ -41,7 +41,12 @@
       this.renderPoints();
       this.renderWeather();
       global.document?.addEventListener?.('visibilitychange', () => {
-        if (global.document.visibilityState === 'visible' && global.AE?.running) this.keepScreenAwake();
+        if (global.document.visibilityState !== 'visible') return;
+        if (global.AE?.running) this.keepScreenAwake();
+        if (global.UI?.active === 'field' && this._weatherOptIn && this.location) {
+          const age = this.weather ? Date.now() - Date.parse(this.weather.capturedAt || '') : Infinity;
+          if (age > 15 * 60 * 1000) this.refreshWeather({ silent: true, reuseLocation: true });
+        }
       });
       if (global.AE?.running) this.keepScreenAwake();
     },
@@ -83,15 +88,19 @@
     },
     onHide() { this.stopWeatherRefresh(); },
     startWeatherRefresh() {
-      if (!this._weatherOptIn || this._weatherTimer) return;
-      this._weatherTimer = global.setInterval(() => {
-        if (global.document?.visibilityState === 'hidden' || !global.AE?.running || this._busy || !this.location) return;
+      if (!this._weatherOptIn || this._weatherTimer || global.UI?.active !== 'field') return;
+      this._weatherTimer = global.setTimeout(() => {
+        this._weatherTimer = null;
+        if (global.document?.visibilityState !== 'visible' || global.UI?.active !== 'field' ||
+            !global.AE?.running || this._busy || !this.location) {
+          return;
+        }
         this.refreshWeather({ silent: true, reuseLocation: true });
       }, 15 * 60 * 1000);
     },
     stopWeatherRefresh() {
       if (!this._weatherTimer) return;
-      global.clearInterval(this._weatherTimer);
+      global.clearTimeout(this._weatherTimer);
       this._weatherTimer = null;
     },
     async refreshWeather(options = {}) {
@@ -118,7 +127,6 @@
         this.weather = payload;
         this._weatherOptIn = true;
         this.renderWeather();
-        this.startWeatherRefresh();
         if (!options.silent) this.status('Ambiente actualizado. Se renovará cada 15 minutos mientras la pestaña Campo / zonas esté abierta.');
         return this.weather;
       } catch (error) {
@@ -129,6 +137,7 @@
         this._busy = false;
         this.ui.weatherButton.disabled = false;
         this.ui.weatherButton.textContent = 'Actualizar ambiente';
+        if (this._weatherOptIn && global.UI?.active === 'field') this.startWeatherRefresh();
       }
     },
     makeSpectrumSnapshot() {
@@ -237,6 +246,18 @@
     renderPoints() {
       if (!this.ui) return;
       this.ui.pointCount.textContent = String(this.points.length);
+      const latestByZone = new Map();
+      for (const point of this.points) latestByZone.set(point.zone, point);
+      this.ui.presets.forEach(button => {
+        const point = latestByZone.get(button.dataset.zone);
+        const level = button.querySelector('.field-zone-level');
+        const count = button.querySelector('.field-zone-count');
+        const readings = this.points.filter(item => item.zone === button.dataset.zone).length;
+        if (level) level.textContent = point && Number.isFinite(point.level?.leqDb)
+          ? (point.level.calibrated ? '' : '~') + point.level.leqDb.toFixed(1) + ' dB' : '—';
+        if (count) count.textContent = readings ? readings + (readings === 1 ? ' lectura' : ' lecturas') : 'Sin lectura';
+        button.classList.toggle('has-reading', !!point);
+      });
       this.ui.list.textContent = '';
       if (!this.points.length) {
         const empty = document.createElement('p');
