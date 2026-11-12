@@ -18,7 +18,8 @@
   }
   updateSummary();
 
-  const installButtons = [...document.querySelectorAll('[data-pwa-install]')];
+  const installButtons = ['btnInstallAppStart', 'btnInstallAppTop']
+    .map(id => document.getElementById(id)).filter(Boolean);
   const guide = document.getElementById('pwaInstallGuide');
   const guideDone = document.getElementById('btnInstallGuideDone');
   const closeGuide = document.getElementById('btnCloseInstallGuide');
