@@ -7,12 +7,18 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['22', '24']
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: ${{ matrix.node-version }}
           package-manager-cache: false
-      - run: npm test
-      - run: npm run check
+      - name: Run DSP, measurement, and integration tests
+        run: npm test
+      - name: Check JavaScript syntax and local site links
+        run: npm run check
