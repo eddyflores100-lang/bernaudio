@@ -399,7 +399,7 @@
         <label class="field-label" for="fieldEvent">Nombre del evento / recinto</label>
         <input class="field-input" id="fieldEvent" maxlength="80" placeholder="Ej.: Festival · escenario principal" />
         <div class="field-weather-toolbar">
-          <div><strong>Ambiente exterior</strong><p id="fieldWeatherStatus" class="field-muted">No consultado. La ubicación se solicita solo al pulsar actualizar.</p></div>
+          <div><strong>Ambiente exterior</strong><p id="fieldWeatherStatus" class="field-muted">No consultado. Pulsa actualizar y autoriza ubicación; después se renovará automáticamente cada 15 minutos mientras la pestaña esté abierta.</p></div>
           <button class="btn btn-primary" id="fieldWeatherRefresh" type="button">Actualizar ambiente</button>
         </div>
         <div class="field-weather-grid" id="fieldWeatherGrid" aria-live="polite"></div>
@@ -407,7 +407,23 @@
       </div>
       <div class="field-card">
         <h3>Registrar una posición de escucha</h3>
-        <label class="field-label" for="fieldZone">Zona / posición</label>
+        <div class="field-stage-map" role="group" aria-label="Plano táctil de posiciones del público">
+          <div class="field-stage">ESCENARIO / PA</div>
+          <div class="field-zone-grid">
+            <button type="button" class="field-zone-preset" data-zone="Frente izquierda" aria-pressed="false"><span>Frente izquierda</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Frente centro" aria-pressed="false"><span>Frente centro</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Frente derecha" aria-pressed="false"><span>Frente derecha</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Centro izquierda" aria-pressed="false"><span>Centro izquierda</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Centro" aria-pressed="false"><span>Centro</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Centro derecha" aria-pressed="false"><span>Centro derecha</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Fondo izquierda" aria-pressed="false"><span>Fondo izquierda</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Fondo" aria-pressed="false"><span>Fondo</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+            <button type="button" class="field-zone-preset" data-zone="Fondo derecha" aria-pressed="false"><span>Fondo derecha</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+          </div>
+          <button type="button" class="field-zone-preset field-zone-foh" data-zone="FOH" aria-pressed="false"><span>FOH · control</span><strong class="field-zone-level">—</strong><small class="field-zone-count">Sin lectura</small></button>
+          <p class="field-muted">Toca una posición para seleccionarla; puedes registrar más de una lectura en la misma zona.</p>
+        </div>
+        <label class="field-label" for="fieldZone">Zona seleccionada / personalizada</label>
         <input class="field-input" id="fieldZone" maxlength="48" placeholder="Ej.: FOH, centro, lateral izquierdo, fondo…" />
         <label class="field-check"><input type="checkbox" id="fieldIncludeGps" /> Guardar coordenadas GPS en el informe</label>
         <div class="field-actions">
