@@ -296,7 +296,7 @@ function near(actual, expected, tolerance = 1e-6) { assert.ok(Math.abs(actual - 
 
 test('actual HTML scripts initialize their controls and accessible tab navigation', async () => {
   const h = await harness();
-  for (const name of ['DSP', 'AE', 'UI', 'BAU', 'MOD_SPL', 'MOD_RTA', 'MOD_SPECTRO', 'MOD_TF', 'MOD_DELAY', 'MOD_IR', 'MOD_GEN', 'MOD_CAL']) {
+  for (const name of ['DSP', 'AE', 'UI', 'BAU', 'MOD_SPL', 'MOD_RTA', 'MOD_SPECTRO', 'MOD_TF', 'MOD_DELAY', 'MOD_IR', 'MOD_GEN', 'MOD_CAL', 'FIELD']) {
     assert.ok(h.env[name], `${name} must load in app.html script order`);
   }
   assert.ok(h.scriptFiles.indexOf('js/app/dsp.js') < h.scriptFiles.indexOf('js/app/modules-tf.js'));
@@ -308,7 +308,7 @@ test('actual HTML scripts initialize their controls and accessible tab navigatio
   assert.equal(h.env.UI.active, 'rta'); assert.equal(h.document.activeElement.id, 'tab-rta');
   assert.equal(h.get('tab-rta').getAttribute('aria-selected'), 'true');
   assert.equal(h.get('mod-rta').classList.contains('active'), true);
-  for (const name of ['spectro', 'cal', 'ir', 'gen', 'help', 'spl']) await h.click(`tab-${name}`);
+  for (const name of ['spectro', 'cal', 'ir', 'gen', 'help', 'field', 'spl']) await h.click(`tab-${name}`);
   h.assertHealthy();
 });
 
@@ -510,5 +510,52 @@ test('BernAudio AI uses a full-width accessible message editor without the visib
   assert.equal(input.getAttribute('aria-label'), 'Escribe tu pregunta para BernAudio AI');
   assert.equal(input.getAttribute('rows'), '4');
   assert.doesNotMatch(panel.textContent, /Pregunta para BernAudio AI/);
+  h.assertHealthy();
+});
+
+
+test('field workflow records multiple listening zones and round-trips them in the session JSON', async () => {
+  const h = await harness();
+  assert.ok(h.env.FIELD);
+  assert.equal(h.get('fieldIncludeGps').checked, false, 'GPS must be opt-in');
+  await h.click('btnStart');
+  await h.click('tab-field');
+
+  h.capture(96000, sine());
+  h.get('fieldZone').value = 'FOH';
+  await h.click('fieldSavePoint');
+  assert.equal(h.env.FIELD.points.length, 1);
+  assert.equal(h.env.FIELD.points[0].zone, 'FOH');
+  assert.ok(h.env.FIELD.points[0].level.durationSeconds >= 1.5);
+  assert.equal(h.env.FIELD.points[0].location, null);
+
+  await h.click('fieldResetLevel');
+  h.capture(96000, sine(0.05));
+  h.get('fieldZone').value = 'Centro';
+  await h.click('fieldSavePoint');
+  assert.equal(h.env.FIELD.points.length, 2);
+  assert.equal(h.env.FIELD.points[1].zone, 'Centro');
+
+  h.env.UI.exportSession();
+  const saved = JSON.parse(await h.downloads.at(-1).blob.text());
+  assert.equal(saved.schemaVersion, 2);
+  assert.equal(saved.field.points.length, 2);
+  assert.equal(saved.field.points[0].zone, 'FOH');
+
+  h.env.UI.importSession({ size: 1024, text: JSON.stringify(saved) });
+  assert.equal(h.env.FIELD.points.length, 2);
+  assert.equal(h.env.FIELD.points[1].zone, 'Centro');
+  await h.click('btnStop');
+  h.assertHealthy();
+});
+
+test('field import rejects malformed zone data without changing the active list', async () => {
+  const h = await harness();
+  h.env.FIELD.points.push({ id: 'keep', zone: 'FOH', capturedAt: new Date().toISOString(),
+    level: { leqDb: 72, durationSeconds: 3, calibrated: false } });
+  assert.throws(() => h.env.FIELD.validateData({
+    schemaVersion: 1, eventName: 'Show', points: [{ zone: 'bad', capturedAt: 'today', level: { leqDb: 'not-a-number' } }]
+  }), /dañado/);
+  assert.equal(h.env.FIELD.points.length, 1);
   h.assertHealthy();
 });
