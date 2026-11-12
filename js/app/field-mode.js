@@ -92,7 +92,7 @@
       this._weatherTimer = global.setTimeout(() => {
         this._weatherTimer = null;
         if (global.document?.visibilityState !== 'visible' || global.UI?.active !== 'field' ||
-            !global.AE?.running || this._busy || !this.location) {
+            this._busy || !this.location) {
           return;
         }
         this.refreshWeather({ silent: true, reuseLocation: true });
@@ -225,7 +225,9 @@
       }
       const w = this.weather.conditions || {};
       const place = [this.weather.location?.name, this.weather.location?.region, this.weather.location?.country].filter(Boolean).join(', ');
-      this.ui.weatherStatus.textContent = (place ? place + ' · ' : '') + 'Actualizado ' + new Date(this.weather.capturedAt).toLocaleTimeString();
+      const sourceTime = this.weather.observedAt ? new Date(this.weather.observedAt.replace(' ', 'T')).toLocaleTimeString() : 'no informado';
+      const fetchTime = this.weather.capturedAt ? new Date(this.weather.capturedAt).toLocaleTimeString() : '—';
+      this.ui.weatherStatus.textContent = (place ? place + ' · ' : '') + 'Dato del proveedor ' + sourceTime + ' · consultado ' + fetchTime;
       const values = [
         ['Presión', w.pressureHpa, 'hPa'],
         ['Temperatura', w.temperatureC, '°C'],
