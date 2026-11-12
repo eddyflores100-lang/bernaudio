@@ -172,7 +172,7 @@
         const message = document.createElement('p');
         message.className = 'field-muted';
         message.textContent = 'Sin datos ambientales todavía. Actualiza para consultar presión, temperatura, humedad y viento.';
-        grid.append(message);
+        grid.appendChild(message);
         return;
       }
       const w = this.weather.conditions || {};
@@ -192,7 +192,7 @@
         const name = document.createElement('span'); name.textContent = label;
         const number = document.createElement('strong');
         number.textContent = value == null ? '—' : (typeof value === 'number' ? value.toFixed(label === 'Presión' ? 1 : 0) : String(value)) + (unit ? ' ' + unit : '');
-        card.append(name, number); grid.append(card);
+        card.appendChild(name).appendChild(number); grid.appendChild(card);
       }
     },
     renderPoints() {
@@ -203,7 +203,7 @@
         const empty = document.createElement('p');
         empty.className = 'field-muted';
         empty.textContent = 'Todavía no hay zonas registradas. Mide en una posición y guarda el punto para comparar la cobertura.';
-        this.ui.list.append(empty);
+        this.ui.list.appendChild(empty);
         return;
       }
       const baseline = this.points[0].level?.leqDb;
@@ -214,7 +214,7 @@
         const title = document.createElement('strong'); title.textContent = (index + 1) + '. ' + point.zone;
         const time = document.createElement('time'); time.dateTime = point.capturedAt;
         time.textContent = new Date(point.capturedAt).toLocaleTimeString();
-        header.append(title, time);
+        header.appendChild(title).appendChild(time);
         const stats = document.createElement('div'); stats.className = 'field-point-stats';
         const leq = document.createElement('span');
         leq.textContent = 'Leq ' + (Number.isFinite(point.level?.leqDb) ? point.level.leqDb.toFixed(1) + ' dB' : '—');
@@ -223,26 +223,26 @@
         delta.textContent = index === 0 ? 'Referencia' : difference == null ? 'Δ —' : 'Δ ' + (difference > 0 ? '+' : '') + difference.toFixed(1) + ' dB vs. primer punto';
         const calibrated = document.createElement('span');
         calibrated.textContent = point.level?.calibrated ? 'Offset declarado' : 'Nivel relativo / sin calibrar';
-        stats.append(leq, delta, calibrated);
-        card.append(header, stats);
+        stats.appendChild(leq).appendChild(delta).appendChild(calibrated);
+        card.appendChild(header).appendChild(stats);
         if (point.environment?.conditions) {
           const env = point.environment.conditions;
           const line = document.createElement('p'); line.className = 'field-point-env';
           line.textContent = 'Ambiente: ' + (env.temperatureC == null ? '—' : env.temperatureC + ' °C') +
             ' · ' + (env.pressureHpa == null ? '—' : env.pressureHpa + ' hPa') +
             ' · viento ' + (env.windKph == null ? '—' : env.windKph + ' km/h');
-          card.append(line);
+          card.appendChild(line);
         }
         if (point.location) {
           const gps = document.createElement('p'); gps.className = 'field-point-env';
           gps.textContent = 'GPS ±' + (point.location.accuracyMeters == null ? '—' : Math.round(point.location.accuracyMeters) + ' m');
-          card.append(gps);
+          card.appendChild(gps);
         }
         const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'btn btn-sm field-remove';
         remove.textContent = 'Quitar zona'; remove.addEventListener('click', () => {
           this.points = this.points.filter(item => item.id !== point.id); this.renderPoints();
         });
-        card.append(remove); this.ui.list.append(card);
+        card.appendChild(remove); this.ui.list.appendChild(card);
       });
     },
     exportData() {
