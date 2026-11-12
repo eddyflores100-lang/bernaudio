@@ -177,13 +177,45 @@
       MODULES[name]?.onShow?.();
     },
     exportSession() {
-      const report = { product: 'BernAudio', schemaVersion: 1, createdAt: new Date().toISOString(),
-        sampleRate: AE.sampleRate, channels: AE.realChannels, captureBackend: AE.backend,
-        level: MODULES.spl.snapshot(), correctionCurve: BA_STATE.micCal ? { enabled: BA_STATE.micCalOn,
+      const rta = MODULES.rta, tf = MODULES.tf;
+      const finite = values => Array.from(values || [], value => Number.isFinite(value) ? value : null);
+      const report = {
+        product: 'BernAudio', schemaVersion: 2, createdAt: new Date().toISOString(),
+        environment: { userAgent: global.navigator?.userAgent || 'unknown',
+          language: global.navigator?.language || 'unknown', platform: global.navigator?.platform || 'unknown' },
+        audio: { sampleRate: AE.sampleRate, channels: AE.realChannels, captureBackend: AE.backend,
+          fftSize: AE.fftSize, state: AE.ctx?.state || 'closed' },
+        level: MODULES.spl.snapshot(),
+        spectrum: rta?.bands?.length ? {
+          weighting: rta.el.rtaWeight.value, resolutionPerOctave: +rta.el.rtaRes.value,
+          engine: rta.engine, bands: rta.bands.map((band, index) => ({
+            centerHz: band.fc, levelDb: Number.isFinite(rta.disp?.[index]) ? rta.disp[index] : null })),
+          savedCurves: (rta.curves || []).map((curve, index) => ({
+            name: 'RTA ' + String.fromCharCode(65 + index),
+            frequenciesHz: Array.from(curve.bands || []), levelsDb: finite(curve.lv) }))
+        } : null,
+        transferFunction: tf ? {
+          measuring: !!tf.measuring, updates: tf.updates || 0, fftSize: tf.W,
+          sampleRate: tf._sampleRate || AE.sampleRate,
+          traces: (tf.traces || []).map(trace => ({
+            name: trace.name, createdAt: trace.createdAt || null,
+            sampleRate: trace.sampleRate, fftSize: trace.fftSize,
+            reference: trace.reference || null, delaySamples: trace.delaySamples ?? null,
+            delayAdjustmentMs: trace.delayAdjustmentMs ?? null,
+            polarityInverted: !!trace.polarityInverted,
+            magnitudeDb: finite(trace.mag), phaseDeg: finite(trace.phase),
+            coherence: finite(trace.coherence)
+          }))
+        } : null,
+        correctionCurve: BA_STATE.micCal ? { enabled: BA_STATE.micCalOn,
           frequencies: Array.from(BA_STATE.micCal.freqs), db: Array.from(BA_STATE.micCal.db) } : null,
-        limitations: ['Nivel dependiente de calibración y ganancia.', 'Retardo interno incluye latencia de cadena.', 'No es un sonómetro certificado.'] };
-      global.BAU.download('bernaudio_session.json', JSON.stringify(report, null, 2), 'application/json');
-      this.setStatus('Informe de sesión exportado en JSON.');
+        limitations: ['Nivel dependiente de calibración, micrófono y ganancia.',
+          'Retardo interno incluye latencia de la cadena.', 'La función de transferencia depende de la referencia y sincronía.',
+          'El espectro y las trazas no son certificación metrológica.',
+          'No se incluye audio bruto ni identificadores de dispositivos.']
+      };
+      global.BAU.download('bernaudio_session_v2.json', JSON.stringify(report, null, 2), 'application/json');
+      this.setStatus('Informe de sesión v2 exportado con espectro y trazas guardadas.');
     },
     setStatus(text) { if (el('stText')) el('stText').textContent = text; }
   };

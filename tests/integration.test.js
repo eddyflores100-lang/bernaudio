@@ -313,7 +313,7 @@ test('actual HTML scripts initialize their controls and accessible tab navigatio
 });
 
 test('capture keeps SPL live in RTA, calibrates and exports, then reboots the selected input and channels', async () => {
-  const h = await harness(), { AE, MOD_SPL: spl, MOD_RTA: rta, BA_STATE: state } = h.env;
+  const h = await harness(), { AE, MOD_SPL: spl, MOD_RTA: rta, MOD_TF: tf, BA_STATE: state } = h.env;
   await h.click('btnStart'); await h.change('splWeight', 'Z'); await h.change('rtaAvg', '1'); await h.click('tab-rta');
   assert.equal(AE.running, true); assert.equal(AE.realChannels, 1);
   assert.equal(h.get('overlay').classList.contains('hidden'), true); assert.equal(h.get('workspace').inert, false);
@@ -330,9 +330,22 @@ test('capture keeps SPL live in RTA, calibrates and exports, then reboots the se
   await h.click('tab-cal'); await h.click('calSetReference');
   assert.equal(state.calibrated, true); assert.equal(spl.snapshot().durationSeconds, 0);
   h.capture(4096, sine()); near(spl.snapshot().leqDb, 94, 0.06);
+  tf.traces.push({ name: 'A', sampleRate: 48000, fftSize: 8192, reference: 'gen',
+    delaySamples: 12, delayAdjustmentMs: 0.2, polarityInverted: false,
+    mag: Float64Array.from([0, -1, -2]), phase: Float64Array.from([0, 10, 20]),
+    coherence: Float64Array.from([0.99, 0.98, 0.97]) });
+  rta.curves.push({ bands: [100, 1000, 10000], lv: Float64Array.from([-2, -1, -3]) });
   await h.click('btnSession');
   const report = JSON.parse(await h.downloads.at(-1).blob.text());
-  assert.equal(report.sampleRate, 48000); assert.equal(report.channels, 1); assert.equal(report.level.calibrated, true);
+  assert.equal(report.schemaVersion, 2);
+  assert.equal(report.audio.sampleRate, 48000); assert.equal(report.audio.channels, 1); assert.equal(report.level.calibrated, true);
+  assert.equal(report.transferFunction.traces.length, 1);
+  assert.equal(report.transferFunction.traces[0].name, 'A');
+  assert.equal(report.transferFunction.traces[0].coherence[0], 0.99);
+  assert.equal(report.spectrum.savedCurves.length, 1);
+  assert.equal(report.spectrum.savedCurves[0].levelsDb[1], -1);
+  assert.equal(report.audio.state, 'running');
+  assert.ok(!JSON.stringify(report).includes('deviceId'));
   const firstContext = AE.ctx, firstTrack = h.streams[0].getTracks()[0];
   await h.change('selChannels', '2');
   assert.equal(firstContext.state, 'closed'); assert.equal(firstTrack.stopped, true);
