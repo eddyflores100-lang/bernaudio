@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=VT323&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/app.css?v=06e70a6ee7af" />
+  <link rel="stylesheet" href="css/app.css?v=7d4088c4bb7e" />
 </head>
 <body>
 
@@ -133,6 +133,25 @@
     <button class="tab" data-mod="help" id="tab-help" role="tab" aria-controls="mod-help" aria-selected="false" tabindex="-1">Ayuda</button>
     <button class="tab" data-mod="field" id="tab-field" role="tab" aria-controls="mod-field" aria-selected="false" tabindex="-1">Campo / zonas</button>
   </nav>
+
+  <details class="device-preflight" id="devicePreflight">
+    <summary><span>Preparación y perfiles de equipo</span><span class="preflight-summary">Diagnóstico · micrófono · calibración</span></summary>
+    <div class="preflight-body">
+      <div class="preflight-actions">
+        <input id="deviceProfileName" type="text" maxlength="48" placeholder="Nombre del perfil (ej. UMIK-1 / tablet)" aria-label="Nombre del perfil">
+        <button class="btn btn-sm" id="deviceProfileSave" type="button">Guardar perfil actual</button>
+      </div>
+      <div class="preflight-actions">
+        <select id="deviceProfileSelect" aria-label="Perfiles guardados"><option value="">Selecciona un perfil guardado</option></select>
+        <button class="btn btn-sm btn-primary" id="deviceProfileApply" type="button">Aplicar</button>
+        <button class="btn btn-sm btn-danger" id="deviceProfileDelete" type="button">Eliminar</button>
+      </div>
+      <div class="preflight-actions"><button class="btn btn-sm" id="devicePreflightRun" type="button">Comprobar equipo</button></div>
+      <div class="preflight-results" id="devicePreflightResults" aria-live="polite"></div>
+      <p class="preflight-status" id="devicePreflightStatus" role="status">Los perfiles se guardan localmente y no incluyen identificadores de dispositivo.</p>
+      <p class="preflight-caveat">Aplicar un perfil restaura ajustes y curva de frecuencia, pero nunca certifica ni restaura la calibración de nivel. Verifica el nivel con una referencia acústica después de cada cambio de cadena.</p>
+    </div>
+  </details>
 
   <div class="measurement-notice" id="levelNotice" role="status">Nivel estimado, sin calibrar. Ajusta Calibración antes de interpretar valores absolutos.</div>
   <p class="hardware-note" id="hardwareNotice">Entrada 1 = medición · Entrada 2 = referencia cableada.</p>
@@ -528,6 +547,7 @@
   <script src="js/app/field-mode.js?v=ebcf9be711fc"></script>
   <script src="js/app/assistant.js?v=032e9c7f17e2"></script>
   <script src="js/app/pwa.js?v=a48cba0e1649"></script>
+  <script src="js/app/device-preflight.js?v=30140ee26650"></script>
   <script>
     /* Año dinámico de la barra legal — Alicelabs LLC */
     (function () { var y = document.getElementById("albYear"); if (y) y.textContent = String(new Date().getFullYear()); })();

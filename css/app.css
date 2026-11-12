@@ -526,3 +526,29 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible { 
  .field-draft-actions{display:grid;grid-template-columns:1fr}
  .field-draft-actions .btn{width:100%}
 }
+
+
+/* Device readiness and reusable field profiles */
+.device-preflight { margin: 10px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.device-preflight > summary { cursor: pointer; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; color:var(--txt); font-weight:700; list-style:none; }
+.device-preflight > summary::-webkit-details-marker { display:none; }
+.preflight-summary { color:var(--muted); font-size:11px; font-weight:500; }
+.preflight-body { padding:0 14px 14px; display:grid; gap:10px; }
+.preflight-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.preflight-actions input,.preflight-actions select { min-width:0; flex:1 1 210px; min-height:40px; }
+.preflight-results { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:7px; }
+.preflight-row { display:flex; flex-direction:column; gap:3px; padding:9px 11px; border:1px solid var(--line-soft); border-radius:8px; background:var(--panel-2); min-width:0; }
+.preflight-row strong { font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
+.preflight-row span { color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+.preflight-row[data-state="ok"] strong { color:#80C99A; }
+.preflight-row[data-state="warn"] strong { color:var(--amber); }
+.preflight-status { font-size:12px; color:var(--txt); }
+.preflight-caveat { color:var(--muted); font-size:11px; line-height:1.5; }
+@media(max-width:720px) {
+ .device-preflight { margin:8px 8px; }
+ .device-preflight > summary { align-items:flex-start; flex-direction:column; gap:4px; }
+ .preflight-actions { display:grid; grid-template-columns:1fr 1fr; }
+ .preflight-actions input:first-child,.preflight-actions select { grid-column:1/-1; width:100%; }
+ .preflight-actions .btn { min-height:42px; white-space:normal; }
+ .preflight-results { grid-template-columns:1fr; }
+}
