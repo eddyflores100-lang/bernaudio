@@ -123,7 +123,7 @@
       const item = global.document.createElement('div'); item.className = 'preflight-row';
       const title = global.document.createElement('strong'); title.textContent = label;
       const detail = global.document.createElement('span'); detail.textContent = value + (note ? ' · ' + note : '');
-      item.dataset.state = good ? 'ok' : 'warn'; item.append(title, detail); this.results?.appendChild(item);
+      item.dataset.state = good ? 'ok' : 'warn'; item.appendChild(title); item.appendChild(detail); this.results?.appendChild(item);
     },
     run() {
       if (!this.results) return;
