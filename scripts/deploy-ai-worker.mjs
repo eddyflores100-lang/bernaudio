@@ -11,6 +11,7 @@ const metadata = {
   main_module: 'index.mjs',
   compatibility_date: '2026-11-12',
   bindings: [{ type: 'ai', name: 'AI' }],
+  keep_bindings: ['secret_text'],
   observability: { enabled: true, logs: { enabled: true, invocation_logs: true } },
   annotations: { 'workers/message': 'BernAudio AI advisory assistant' }
 };
