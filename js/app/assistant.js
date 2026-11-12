@@ -30,16 +30,19 @@
       phaseDeg: sample(trace.phase, 18),
       coherence: sample(trace.coherence, 18)
     }));
+    const comparison = TF?._comparisonStats?.();
     return {
       app: 'BernAudio Model 80',
       audio: { running: !!AE?.running, sampleRate: safeNumber(AE?.sampleRate), channels: safeNumber(AE?.realChannels), fftSize: safeNumber(AE?.fftSize) },
       level: level ? {
-        currentDb: safeNumber(level.currentDb ?? level.fastDb ?? level.leqDb),
-        leqDb: safeNumber(level.leqDb), durationSeconds: safeNumber(level.durationSeconds),
-        calibrated: !!level.calibrated, weighting: SPL?.el?.splWeight?.value || null
+        currentDb: null, leqDb: safeNumber(level.leqDb),
+        minDb: safeNumber(level.minDb), maxDb: safeNumber(level.maxDb), peakDb: safeNumber(level.peakDb),
+        durationSeconds: safeNumber(level.durationSeconds),
+        calibrated: !!level.calibrated, weighting: level.weighting || null
       } : null,
       spectrum: rta,
-      transferFunction: { measuring: !!TF?.measuring, savedTraceCount: TF?.traces?.length || 0, latestTraces: traces },
+      transferFunction: { measuring: !!TF?.measuring, savedTraceCount: TF?.traces?.length || 0, latestTraces: traces,
+        comparison: comparison ? { meanDeltaDb: safeNumber(comparison.meanDeltaDb), maxAbsDeltaDb: safeNumber(comparison.maxAbsDeltaDb), meanCoherence: safeNumber(comparison.meanCoherence), bins: comparison.bins } : null },
       note: 'Resumen numérico reducido. No contiene audio, nombres de dispositivos ni identificadores.'
     };
   }
