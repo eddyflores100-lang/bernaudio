@@ -82,6 +82,7 @@ export default {
         return json({
           source: "WeatherAPI.com",
           capturedAt: new Date().toISOString(),
+          observedAt: String(current.last_updated || "").slice(0, 32),
           location: {
             name: String(location.name || "").slice(0, 80),
             region: String(location.region || "").slice(0, 80),

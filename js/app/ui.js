@@ -173,12 +173,15 @@
       } catch (_) {}
     },
     showTab(name) {
+      const previous = this.active;
+      if (previous === 'field' && name !== 'field') global.FIELD?.onHide?.();
       this.active = name;
       document.querySelectorAll('.tab').forEach(t => {
         const active = t.dataset.mod === name; t.classList.toggle('active', active); t.setAttribute('aria-selected', active); t.tabIndex = active ? 0 : -1;
       });
       document.querySelectorAll('.module').forEach(panel => panel.classList.toggle('active', panel.id === 'mod-' + name));
       MODULES[name]?.onShow?.();
+      if (name === 'field') global.FIELD?.onShow?.();
     },
     exportSession() {
       const rta = MODULES.rta, tf = MODULES.tf;

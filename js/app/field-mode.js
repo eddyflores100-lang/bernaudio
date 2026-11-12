@@ -13,10 +13,16 @@
         weatherButton: el('fieldWeatherRefresh'), weatherStatus: el('fieldWeatherStatus'),
         weatherGrid: el('fieldWeatherGrid'), saveButton: el('fieldSavePoint'),
         resetButton: el('fieldResetLevel'), clearButton: el('fieldClearPoints'),
-        pointCount: el('fieldPointCount'), list: el('fieldPointList'), note: el('fieldStatus')
+        pointCount: el('fieldPointCount'), list: el('fieldPointList'), note: el('fieldStatus'),
+        presets: document.querySelectorAll('.field-zone-preset')
       };
       if (!this.ui.event || !this.ui.zone) return;
       this.ui.weatherButton.addEventListener('click', () => this.refreshWeather());
+      this.ui.presets.forEach(button => button.addEventListener('click', () => {
+        this.ui.zone.value = button.dataset.zone || '';
+        this.ui.presets.forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+        this.ui.zone.focus();
+      }));
       this.ui.saveButton.addEventListener('click', () => this.savePoint());
       this.ui.resetButton.addEventListener('click', () => {
         global.MOD_SPL?.reset();
@@ -26,13 +32,21 @@
         this.points = []; this.renderPoints();
         this.status('Lista de zonas vaciada. Las mediciones originales del analizador no se modificaron.');
       });
+      this.ui.zone.addEventListener('input', () => {
+        this.ui.presets.forEach(item => item.setAttribute('aria-pressed', String(item.dataset.zone === this.ui.zone.value)));
+      });
       this.ui.zone.addEventListener('keydown', event => {
         if (event.key === 'Enter') { event.preventDefault(); this.savePoint(); }
       });
       this.renderPoints();
       this.renderWeather();
       global.document?.addEventListener?.('visibilitychange', () => {
-        if (global.document.visibilityState === 'visible' && global.AE?.running) this.keepScreenAwake();
+        if (global.document.visibilityState !== 'visible') return;
+        if (global.AE?.running) this.keepScreenAwake();
+        if (global.UI?.active === 'field' && this._weatherOptIn && this.location) {
+          const age = this.weather ? Date.now() - Date.parse(this.weather.capturedAt || '') : Infinity;
+          if (age > 15 * 60 * 1000) this.refreshWeather({ silent: true, reuseLocation: true });
+        }
       });
       if (global.AE?.running) this.keepScreenAwake();
     },
@@ -66,6 +80,29 @@
       if (this.location.latitude == null || this.location.longitude == null) throw new Error('La ubicación recibida no es válida.');
       return this.location;
     },
+    onShow() {
+      if (!this._weatherOptIn) return;
+      this.startWeatherRefresh();
+      const age = this.weather ? Date.now() - Date.parse(this.weather.capturedAt || '') : Infinity;
+      if (age > 15 * 60 * 1000) this.refreshWeather({ silent: true, reuseLocation: true });
+    },
+    onHide() { this.stopWeatherRefresh(); },
+    startWeatherRefresh() {
+      if (!this._weatherOptIn || this._weatherTimer || global.UI?.active !== 'field') return;
+      this._weatherTimer = global.setTimeout(() => {
+        this._weatherTimer = null;
+        if (global.document?.visibilityState !== 'visible' || global.UI?.active !== 'field' ||
+            this._busy || !this.location) {
+          return;
+        }
+        this.refreshWeather({ silent: true, reuseLocation: true });
+      }, 15 * 60 * 1000);
+    },
+    stopWeatherRefresh() {
+      if (!this._weatherTimer) return;
+      global.clearTimeout(this._weatherTimer);
+      this._weatherTimer = null;
+    },
     async refreshWeather(options = {}) {
       if (this._busy) return;
       this._busy = true;
@@ -73,7 +110,7 @@
       this.ui.weatherButton.textContent = 'Consultando…';
       if (!options.silent) this.ui.weatherStatus.textContent = 'Solicitando ubicación y condiciones ambientales…';
       try {
-        const location = await this.getLocation();
+        const location = options.reuseLocation && this.location ? this.location : await this.getLocation();
         const response = await fetch(API, {
           method: 'POST',
           headers: { accept: 'application/json', 'content-type': 'application/json' },
@@ -88,8 +125,9 @@
           throw new Error(payload.error || 'El servicio ambiental no respondió correctamente.');
         }
         this.weather = payload;
+        this._weatherOptIn = true;
         this.renderWeather();
-        if (!options.silent) this.status('Condiciones ambientales actualizadas. Se adjuntarán a las próximas zonas que registres.');
+        if (!options.silent) this.status('Ambiente actualizado. Se renovará cada 15 minutos mientras la pestaña Campo / zonas esté abierta.');
         return this.weather;
       } catch (error) {
         this.ui.weatherStatus.textContent = error.message || 'No se pudo consultar el ambiente.';
@@ -99,6 +137,7 @@
         this._busy = false;
         this.ui.weatherButton.disabled = false;
         this.ui.weatherButton.textContent = 'Actualizar ambiente';
+        if (this._weatherOptIn && global.UI?.active === 'field') this.startWeatherRefresh();
       }
     },
     makeSpectrumSnapshot() {
@@ -132,8 +171,14 @@
         this.status('Necesitas al menos 1.5 segundos de captura SPL para guardar una lectura representativa.');
         return false;
       }
-      if (this.location && this.weather && Date.now() - Date.parse(this.weather.capturedAt || '') > 10 * 60 * 1000)
-        await this.refreshWeather({ silent: true });
+      let pointLocation = null;
+      if (this.ui.includeGps.checked) {
+        try { pointLocation = this.location || await this.getLocation(); }
+        catch (error) { this.status((error.message || 'Sin GPS.') + ' La zona se guardará sin coordenadas.'); }
+      }
+      if (this._weatherOptIn && this.location && this.weather &&
+          Date.now() - Date.parse(this.weather.capturedAt || '') > 15 * 60 * 1000)
+        await this.refreshWeather({ silent: true, reuseLocation: true });
       const tf = global.MOD_TF;
       const comparison = tf?._comparisonStats?.();
       const point = {
@@ -160,7 +205,7 @@
           bins: numberOrNull(comparison.bins)
         } : null,
         environment: this.weather ? JSON.parse(JSON.stringify(this.weather)) : null,
-        location: this.ui.includeGps.checked && this.location ? { ...this.location } : null
+        location: this.ui.includeGps.checked && pointLocation ? { ...pointLocation } : null
       };
       this.points.push(point);
       this.renderPoints();
@@ -180,7 +225,9 @@
       }
       const w = this.weather.conditions || {};
       const place = [this.weather.location?.name, this.weather.location?.region, this.weather.location?.country].filter(Boolean).join(', ');
-      this.ui.weatherStatus.textContent = (place ? place + ' · ' : '') + 'Actualizado ' + new Date(this.weather.capturedAt).toLocaleTimeString();
+      const sourceTime = this.weather.observedAt ? new Date(this.weather.observedAt.replace(' ', 'T')).toLocaleTimeString() : 'no informado';
+      const fetchTime = this.weather.capturedAt ? new Date(this.weather.capturedAt).toLocaleTimeString() : '—';
+      this.ui.weatherStatus.textContent = (place ? place + ' · ' : '') + 'Dato del proveedor ' + sourceTime + ' · consultado ' + fetchTime;
       const values = [
         ['Presión', w.pressureHpa, 'hPa'],
         ['Temperatura', w.temperatureC, '°C'],
@@ -201,6 +248,18 @@
     renderPoints() {
       if (!this.ui) return;
       this.ui.pointCount.textContent = String(this.points.length);
+      const latestByZone = new Map();
+      for (const point of this.points) latestByZone.set(point.zone, point);
+      this.ui.presets.forEach(button => {
+        const point = latestByZone.get(button.dataset.zone);
+        const level = button.querySelector('.field-zone-level');
+        const count = button.querySelector('.field-zone-count');
+        const readings = this.points.filter(item => item.zone === button.dataset.zone).length;
+        if (level) level.textContent = point && Number.isFinite(point.level?.leqDb)
+          ? (point.level.calibrated ? '' : '~') + point.level.leqDb.toFixed(1) + ' dB' : '—';
+        if (count) count.textContent = readings ? readings + (readings === 1 ? ' lectura' : ' lecturas') : 'Sin lectura';
+        button.classList.toggle('has-reading', !!point);
+      });
       this.ui.list.textContent = '';
       if (!this.points.length) {
         const empty = document.createElement('p');

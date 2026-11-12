@@ -559,3 +559,71 @@ test('field import rejects malformed zone data without changing the active list'
   assert.equal(h.env.FIELD.points.length, 1);
   h.assertHealthy();
 });
+
+
+test('field zone map selection is touch-accessible and displays the latest reading', async () => {
+  const h = await harness();
+  await h.click('btnStart');
+  await h.click('tab-field');
+  const tiles = h.document.querySelectorAll('.field-zone-preset');
+  assert.equal(tiles.length, 10);
+  const center = tiles.find(tile => tile.dataset.zone === 'Centro');
+  assert.ok(center);
+  await center.click();
+  assert.equal(h.get('fieldZone').value, 'Centro');
+  assert.equal(center.getAttribute('aria-pressed'), 'true');
+
+  h.capture(96000, sine());
+  await h.click('fieldSavePoint');
+  assert.match(center.querySelector('.field-zone-level').textContent, /^~/);
+  assert.equal(center.querySelector('.field-zone-count').textContent, '1 lectura');
+  assert.equal(center.classList.contains('has-reading'), true);
+  await h.click('fieldClearPoints');
+  assert.equal(center.querySelector('.field-zone-level').textContent, '—');
+  assert.equal(center.querySelector('.field-zone-count').textContent, 'Sin lectura');
+  await h.click('btnStop');
+  h.assertHealthy();
+});
+
+test('field weather refresh sends coordinates only in POST body and stops when leaving field mode', async () => {
+  const h = await harness();
+  await h.click('btnStart');
+  await h.click('tab-field');
+  h.document.visibilityState = 'visible';
+  const field = h.env.FIELD;
+  field.location = { latitude: -0.18, longitude: -78.47, accuracyMeters: 12 };
+  field._weatherOptIn = true;
+  const calls = [];
+  h.env.fetch = async (url, options) => {
+    calls.push({ url, options });
+    return {
+      ok: true, status: 200,
+      async json() {
+        return {
+          source: 'WeatherAPI.com', capturedAt: new Date().toISOString(),
+          location: { name: 'Quito', region: 'Pichincha', country: 'Ecuador' },
+          conditions: { pressureHpa: 1015.8, temperatureC: 19.5, humidityPct: 62, windKph: 8.4, windDirection: 'SSW', gustKph: 12.3 }
+        };
+      }
+    };
+  };
+
+  await field.refreshWeather({ silent: true, reuseLocation: true });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, 'https://bernaudio-ai.eddyflores100.workers.dev/api/environment');
+  assert.equal(calls[0].options.method, 'POST');
+  assert.deepEqual(JSON.parse(calls[0].options.body), { latitude: -0.18, longitude: -78.47 });
+  assert.ok(field._weatherTimer, 'refresh timer should be armed after the first successful, authorized lookup');
+
+  h.advance(15 * 60 * 1000);
+  await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+  assert.equal(calls.length, 2, 'weather should refresh after 15 minutes while the field tab is active');
+
+  await h.click('tab-spl');
+  assert.equal(field._weatherTimer, null, 'timer should stop when leaving field mode');
+  h.advance(30 * 60 * 1000);
+  await Promise.resolve();
+  assert.equal(calls.length, 2, 'no weather request should run in background after leaving the field tab');
+  await h.click('btnStop');
+  h.assertHealthy();
+});
