@@ -2,21 +2,70 @@
   "id": "./app.html",
   "name": "BernAudio · Analizador de campo",
   "short_name": "BernAudio",
-  "description": "Analizador de audio y registro de mediciones por zonas con contexto ambiental.",
+  "description": "Analizador de audio para eventos, mediciones por zonas y sesiones de campo.",
   "lang": "es",
-  "start_url": "./app.html",
+  "start_url": "./app.html?source=installed",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "any",
   "background_color": "#101214",
   "theme_color": "#101214",
+  "prefer_related_applications": false,
+  "categories": [
+    "music",
+    "utilities",
+    "productivity"
+  ],
   "icons": [
     {
-      "src": "assets/favicon.svg",
-      "sizes": "any",
+      "src": "assets/pwa-icon.svg",
+      "sizes": "192x192",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "assets/pwa-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/pwa-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Medición por zonas",
+      "short_name": "Campo",
+      "description": "Abrir el registro de zonas de escucha.",
+      "url": "./app.html?view=field",
+      "icons": [
+        {
+          "src": "assets/pwa-icon.svg",
+          "sizes": "192x192",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Analizador SPL",
+      "short_name": "SPL",
+      "description": "Abrir la vista principal de nivel sonoro.",
+      "url": "./app.html?view=spl",
+      "icons": [
+        {
+          "src": "assets/pwa-icon.svg",
+          "sizes": "192x192",
+          "type": "image/svg+xml"
+        }
+      ]
     }
   ]
 }
