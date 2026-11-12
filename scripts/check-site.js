@@ -13,6 +13,12 @@ for (const file of files.filter(f => f.endsWith('.js'))) {
 for (const file of files.filter(f => f.endsWith('.html'))) {
   const html = fs.readFileSync(file, 'utf8'), ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]);
   if (new Set(ids).size !== ids.length) failures.push(file + ': duplicate IDs');
+  for (const [, anchor] of html.matchAll(/(<a\\b[^>]*>)/gi)) {
+    if (!/\\btarget\\s*=\\s*["']_blank["']/i.test(anchor)) continue;
+    const rel = anchor.match(/\\brel\\s*=\\s*["']([^"']*)["']/i);
+    if (!rel || !/\\bnoopener\\b/i.test(rel[1]))
+      failures.push(file + ': target="_blank" link missing rel="noopener"');
+  }
   for (const [, attr, value] of html.matchAll(/\b(href|src|for|aria-controls|aria-labelledby)="([^"]+)"/g)) {
     if (['for','aria-controls','aria-labelledby'].includes(attr)) {
       for (const id of value.split(' ')) if (!ids.includes(id)) failures.push(file + ': missing control ' + id);
