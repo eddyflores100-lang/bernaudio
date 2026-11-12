@@ -24,6 +24,14 @@ HTML, CSS y JavaScript, con procesamiento de audio local mediante Web Audio.
 La portada muestra una **simulación con datos sintéticos**. Abre `app.html` para
 analizar una entrada real y `subs.html` para configurar una simulación de subgraves.
 
+## Asistente BernAudio AI
+
+El analizador incorpora un asistente técnico que interpreta resúmenes de SPL,
+RTA y transferencia, y explica comparaciones guardadas. La inferencia se ejecuta
+en Cloudflare Workers AI; no se transmite audio bruto ni identificadores de
+dispositivos. El asistente es consultivo: no cambia controles ni opera hardware.
+Consulta [la arquitectura y despliegue del asistente](workers/assistant/README.md).
+
 ## Ejecutar localmente
 
 No hace falta compilar la aplicación. Desde la raíz del repositorio:

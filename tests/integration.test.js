@@ -485,3 +485,18 @@ test('loading and toggling a real calibration file resets measurement history an
   assert.equal(state.micCal, null); assert.equal(spl.snapshot().durationSeconds, 0);
   await h.click('btnStop'); h.assertHealthy();
 });
+
+
+test('BernAudio AI panel mounts without interfering with measurement controls', async () => {
+  const h = await harness();
+  const launcher = h.document.querySelector('#baAiLauncher'), panel = h.document.querySelector('#baAiPanel');
+  assert.ok(launcher); assert.ok(panel);
+  assert.equal(launcher.getAttribute('aria-expanded'), 'false');
+  await launcher.click();
+  assert.equal(panel.hidden, false);
+  assert.equal(launcher.getAttribute('aria-expanded'), 'true');
+  await panel.querySelector('.ba-ai-close').click();
+  assert.equal(panel.hidden, true);
+  assert.equal(launcher.getAttribute('aria-expanded'), 'false');
+  h.assertHealthy();
+});

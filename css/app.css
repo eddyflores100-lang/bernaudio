@@ -298,3 +298,27 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible { 
 
 /* Quantitative A/B transfer-function comparison summary. */
 .tf-compare-summary { border-left: 3px solid var(--teal); font-family: var(--mono); font-size: 11px; }
+
+/* BernAudio AI assistant */
+.ba-ai-launcher{position:fixed;right:22px;bottom:24px;z-index:80;border:1px solid rgba(255,162,62,.55);border-radius:999px;padding:12px 17px;background:#211a14;color:#ffe9c4;font:600 13px Inter,system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.38);cursor:pointer}
+.ba-ai-launcher:hover{border-color:#ffa23e;background:#302217}
+.ba-ai-panel{position:fixed;right:22px;bottom:82px;z-index:81;width:min(390px,calc(100vw - 28px));height:min(590px,calc(100dvh - 112px));display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,162,62,.34);border-radius:16px;background:#10151b;color:#e8edf2;box-shadow:0 18px 60px rgba(0,0,0,.55);font:13px Inter,system-ui,sans-serif}
+.ba-ai-panel[hidden]{display:none}
+.ba-ai-head{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;background:#1a2028;border-bottom:1px solid #303844}
+.ba-ai-head strong{display:block;font-size:14px;color:#ffe0b4}
+.ba-ai-head small{display:block;margin-top:4px;color:#9ba8b7;font-size:11px}
+.ba-ai-close{border:0;background:transparent;color:#d6dde5;font-size:24px;cursor:pointer}
+.ba-ai-note{padding:10px 14px;color:#aeb9c6;background:#171e26;font-size:11px;line-height:1.45}
+.ba-ai-messages{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.ba-ai-welcome{margin:0;padding:12px;border:1px solid #303844;border-radius:10px;color:#c6d0db;line-height:1.55}
+.ba-ai-message{max-width:94%;padding:10px 12px;border-radius:11px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.ba-ai-message.user{align-self:flex-end;background:#26394b;color:#f0f5fa}
+.ba-ai-message.assistant{align-self:flex-start;background:#1c242d;color:#dce5ee;border:1px solid #303844}
+.ba-ai-message b{display:block;margin-bottom:4px;color:#ffbd75;font-size:10px}
+.ba-ai-message p{margin:0}
+.ba-ai-form{display:flex;gap:8px;padding:11px;border-top:1px solid #303844;background:#171e26}
+.ba-ai-form textarea{min-width:0;flex:1;resize:vertical;max-height:110px;border:1px solid #3a4654;border-radius:9px;padding:9px;background:#0d1218;color:#f1f4f7;font:12px Inter,system-ui,sans-serif}
+.ba-ai-form button{align-self:flex-end;border:0;border-radius:8px;padding:10px 12px;background:#ffa23e;color:#21170e;font-weight:700;cursor:pointer}
+.ba-ai-form button:disabled{opacity:.55;cursor:wait}
+.ba-ai-foot{margin:0;padding:0 13px 11px;background:#171e26;color:#8e9baa;font-size:10px;line-height:1.4}
+@media(max-width:600px){.ba-ai-launcher{right:12px;bottom:14px}.ba-ai-panel{right:10px;bottom:70px;width:calc(100vw - 20px);height:min(620px,calc(100dvh - 90px))}}
