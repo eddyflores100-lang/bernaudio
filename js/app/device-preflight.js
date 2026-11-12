@@ -90,23 +90,24 @@
       offset.value = String(profile.levelOffsetDb);
       offset.dispatchEvent(new Event('input'));
       const state = global.BA_STATE;
-      if (profile.correctionCurve && Array.isArray(profile.correctionCurve.f) &&
-          Array.isArray(profile.correctionCurve.db) &&
-          profile.correctionCurve.f.length >= 5 && profile.correctionCurve.f.length === profile.correctionCurve.db.length &&
-          profile.correctionCurve.f.length <= 4096 &&
-          profile.correctionCurve.f.every((v,i) => Number.isFinite(v) && v > 0 && (!i || v > profile.correctionCurve.f[i-1])) &&
-          profile.correctionCurve.db.every(Number.isFinite)) {
-        state.micCal = global.DSP.parseCalFile(profile.correctionCurve.f.map((f,i) => f + '\\t' + profile.correctionCurve.db[i]).join('\\n'));
-        state.micCalOn = !!state.micCal && !!profile.correctionEnabled;
-        if (state.micCal) {
-          try {
-            global.localStorage.setItem('ba_miccal', JSON.stringify({f:Array.from(state.micCal.freqs),db:Array.from(state.micCal.db)}));
-            global.localStorage.setItem('ba_miccal_on', state.micCalOn ? '1' : '0');
-          } catch (_) {}
-          const apply = el('calApply'); if (apply) apply.checked = state.micCalOn;
-          global.MOD_CAL?.refreshInfo?.(); global.MOD_CAL?.draw?.();
-        }
-      }
+      const curve = profile.correctionCurve;
+      const validCurve = curve && Array.isArray(curve.f) && Array.isArray(curve.db) &&
+        curve.f.length >= 5 && curve.f.length === curve.db.length && curve.f.length <= 4096 &&
+        curve.f.every((v,i) => Number.isFinite(v) && v > 0 && (!i || v > curve.f[i-1])) &&
+        curve.db.every(Number.isFinite);
+      state.micCal = validCurve
+        ? global.DSP.parseCalFile(curve.f.map((f,i) => f + '\\t' + curve.db[i]).join('\\n'))
+        : null;
+      state.micCalOn = !!state.micCal && !!profile.correctionEnabled;
+      try {
+        if (state.micCal) global.localStorage.setItem('ba_miccal', JSON.stringify({
+          f:Array.from(state.micCal.freqs), db:Array.from(state.micCal.db)
+        }));
+        else global.localStorage.removeItem('ba_miccal');
+        global.localStorage.setItem('ba_miccal_on', state.micCalOn ? '1' : '0');
+      } catch (_) {}
+      const applyCurve = el('calApply'); if (applyCurve) applyCurve.checked = state.micCalOn;
+      global.MOD_CAL?.refreshInfo?.(); global.MOD_CAL?.draw?.();
       state.calibrated = false;
       global.UI?.paintCalibration?.();
       global.UI?.refreshInputs?.();
