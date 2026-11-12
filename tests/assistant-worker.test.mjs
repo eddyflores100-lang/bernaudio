@@ -105,8 +105,9 @@ test('environment endpoint returns a sanitized weather snapshot and keeps provid
     }), { status: 200, headers: { 'content-type': 'application/json' } });
   };
   try {
-    const response = await worker.fetch(new Request('https://worker.example/api/environment?lat=-0.18&lon=-78.47', {
-      headers: { origin: 'https://bernaudio.utalabs.tech' }
+    const response = await worker.fetch(new Request('https://worker.example/api/environment', {
+      method: 'POST', headers: { origin: 'https://bernaudio.utalabs.tech', 'content-type': 'application/json' },
+      body: JSON.stringify({ latitude: -0.18, longitude: -78.47 })
     }), { WEATHERAPI_KEY: 'test-secret' });
     const payload = await response.json();
     assert.equal(response.status, 200);
