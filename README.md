@@ -24,6 +24,45 @@ HTML, CSS y JavaScript, con procesamiento de audio local mediante Web Audio.
 La portada muestra una **simulación con datos sintéticos**. Abre `app.html` para
 analizar una entrada real y `subs.html` para configurar una simulación de subgraves.
 
+## Modo de campo para teléfono y tablet
+
+Abre [el analizador](app.html) desde Safari en iPhone/iPad o Chrome en Android
+a través de HTTPS. El diseño móvil ofrece controles de audio plegables, pestañas
+horizontales, botones táctiles y gráficos adaptados a pantallas pequeñas. Puede
+instalarse en la pantalla de inicio como aplicación web; el modo sin conexión
+solo cubre la interfaz y los recursos estáticos que se hayan almacenado antes.
+
+### Medir una presentación por zonas
+
+1. Inicia la captura de micrófono y comprueba que no hay saturación.
+2. Usa el mismo teléfono, micrófono, orientación, altura y configuración durante
+   todo el recorrido.
+3. Abre **Campo / zonas**, escribe el evento y actualiza el ambiente si deseas
+   asociar el tiempo meteorológico a la ubicación.
+4. Mide al menos 1.5 segundos en cada posición (FOH, centro, laterales, fondo).
+   Guarda la zona y reinicia el intervalo SPL antes del siguiente punto.
+5. Exporta la sesión JSON para conservar Leq, min/max, espectro resumido,
+   comparación TF disponible, hora, datos ambientales y GPS solo cuando se haya
+   autorizado expresamente.
+
+El diferencial dB se compara con el primer punto de la sesión. Es una
+comparación relativa si no está calibrado. No compara de manera metrológica
+micrófonos o teléfonos diferentes.
+
+### Requisitos del clima
+
+El endpoint de ambiente usa WeatherAPI.com mediante el Worker de Cloudflare.
+Configura la clave como secreto del Worker con nombre exacto
+`WEATHERAPI_KEY`; no la pongas en HTML, JavaScript, repositorio ni parámetros
+del navegador. Sin esa clave, la interfaz seguirá midiendo y mostrará que los
+datos meteorológicos no están configurados. El servicio consulta ubicación solo
+cuando el usuario pulsa **Actualizar ambiente**.
+
+La presión, temperatura, humedad y viento son contexto de un proveedor externo,
+no medidas del barómetro del teléfono ni de una estación colocada junto al PA.
+Para registrar condiciones puntuales en el escenario se recomienda una estación
+meteorológica local conectada mediante una integración explícita.
+
 ## Asistente BernAudio AI
 
 El analizador incorpora un asistente técnico que interpreta resúmenes de SPL,

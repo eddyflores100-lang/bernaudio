@@ -2,14 +2,19 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#101214" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <title>BernAudio — Instrumentos de audio · Alicelabs LLC</title>
   <meta name="description" content="SPL, RTA hasta 1/48 de octava con motor FFT extendido, espectrograma completo, delay finder entre fuentes, función de transferencia con ajuste de tiempo y fase, calibración de micrófono por archivo e IR. En tu navegador, gratis: computador con hardware e iPad." />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=VT323&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/app.css?v=e28f0e5e0208" />
+  <link rel="stylesheet" href="css/app.css?v=ca41808910a0" />
 </head>
 <body>
 
@@ -45,39 +50,46 @@
       </svg>
       <span class="brand-name">Bern<em>Audio</em></span><span class="brand-sub">by Alicelabs</span>
     </a>
-    <span class="badge-beta">Web · local</span>
+    <span class="badge-beta">Web · móvil</span>
     <div class="spacer"></div>
-    <div class="tb-group">
-      <label class="tb-label" for="selInput">Entrada</label>
-      <select id="selInput"><option value="">Micrófono predeterminado</option></select>
+    <details class="mobile-settings" open>
+      <summary><span>Audio y calibración</span><span class="mobile-settings-summary-value" id="mobileSettingsSummary">Micrófono · Mono · FFT 8192</span></summary>
+      <div class="mobile-settings-body">
+        <div class="tb-group">
+          <label class="tb-label" for="selInput">Entrada</label>
+          <select id="selInput"><option value="">Micrófono predeterminado</option></select>
+        </div>
+        <div class="tb-group">
+          <label class="tb-label" for="selChannels">Canales</label>
+          <select id="selChannels" title="1 = mono (mic interno o externo) · 2 = estéreo (interfaz USB: loopback o 2 micros)">
+            <option value="1" selected>1 (mono)</option>
+            <option value="2">2 (estéreo)</option>
+          </select>
+        </div>
+        <div class="tb-group">
+          <label class="tb-label" for="selFft">FFT vista</label>
+          <select id="selFft">
+            <option value="2048">2048</option>
+            <option value="4096">4096</option>
+            <option value="8192" selected>8192</option>
+            <option value="16384">16384</option>
+            <option value="32768">32768</option>
+          </select>
+        </div>
+        <div class="tb-group">
+          <label class="tb-label" for="calOffset">Offset</label>
+          <input type="range" id="calOffset" min="0" max="180" step="0.1" value="94" title="dB SPL correspondientes a 0 dBFS (calibrador acústico)" />
+          <span class="chip" id="calChip" title="dB SPL correspondientes a 0 dBFS">94.0 dB</span>
+        </div>
+      </div>
+    </details>
+    <div class="topbar-actions">
+      <button class="btn btn-sm" id="btnResume">Reanudar audio</button>
+      <button class="btn btn-sm" id="btnSession">Exportar sesión</button>
+      <button class="btn btn-sm" id="btnImportSession">Importar sesión</button>
+      <input type="file" id="sessionFile" accept=".json,application/json" hidden>
+      <button class="btn btn-danger btn-sm" id="btnStop">■ Detener</button>
     </div>
-    <div class="tb-group">
-      <label class="tb-label" for="selChannels">Canales</label>
-      <select id="selChannels" title="1 = mono (mic interno o externo) · 2 = estéreo (interfaz USB: loopback o 2 micros)">
-        <option value="1" selected>1 (mono)</option>
-        <option value="2">2 (estéreo)</option>
-      </select>
-    </div>
-    <div class="tb-group">
-      <label class="tb-label" for="selFft">FFT vista</label>
-      <select id="selFft">
-        <option value="2048">2048</option>
-        <option value="4096">4096</option>
-        <option value="8192" selected>8192</option>
-        <option value="16384">16384</option>
-        <option value="32768">32768</option>
-      </select>
-    </div>
-    <div class="tb-group">
-      <label class="tb-label" for="calOffset">Offset</label>
-      <input type="range" id="calOffset" min="0" max="180" step="0.1" value="94" style="width:90px" title="dB SPL correspondientes a 0 dBFS (calibrador acústico)" />
-      <span class="chip" id="calChip" title="dB SPL correspondientes a 0 dBFS">94.0 dB</span>
-    </div>
-    <button class="btn btn-sm" id="btnResume">Reanudar audio</button>
-    <button class="btn btn-sm" id="btnSession">Exportar sesión</button>
-    <button class="btn btn-sm" id="btnImportSession">Importar sesión</button>
-    <input type="file" id="sessionFile" accept=".json,application/json" hidden>
-    <button class="btn btn-danger btn-sm" id="btnStop">■ Detener</button>
   </header>
 
   <!-- ── Pestañas ── -->
@@ -91,6 +103,7 @@
     <button class="tab" data-mod="gen" id="tab-gen" role="tab" aria-controls="mod-gen" aria-selected="false" tabindex="-1">Generador</button>
     <button class="tab" data-mod="cal" id="tab-cal" role="tab" aria-controls="mod-cal" aria-selected="false" tabindex="-1">Calibración</button>
     <button class="tab" data-mod="help" id="tab-help" role="tab" aria-controls="mod-help" aria-selected="false" tabindex="-1">Ayuda</button>
+    <button class="tab" data-mod="field" id="tab-field" role="tab" aria-controls="mod-field" aria-selected="false" tabindex="-1">Campo / zonas</button>
   </nav>
 
   <div class="measurement-notice" id="levelNotice" role="status">Nivel estimado, sin calibrar. Ajusta Calibración antes de interpretar valores absolutos.</div>
@@ -336,12 +349,22 @@
           </ul>
         </div>
         <div class="help-card">
-          <h4>📱 iPad</h4>
+          <h4>📱 Teléfono y tablet · modo de campo</h4>
           <ul>
-            <li>Safari actualizado o Chrome para iOS, según las capacidades del dispositivo y sus permisos de micrófono.</li>
-            <li>Micrófono externo o interfaz USB‑C / Lightning (audio clase compatible): aparece en <b>Entrada</b>.</li>
-            <li>SPL, RTA, espectrograma, TF con referencia interna y delay finder secuencial dependen del navegador, el hardware y la estabilidad del reloj de audio.</li>
-            <li>Consejo: abre en pantalla completa desde «Añadir a pantalla de inicio».</li>
+            <li>Abre BernAudio por HTTPS en Safari (iPhone/iPad) o Chrome (Android). Autoriza el micrófono cuando lo solicite el navegador.</li>
+            <li>El micrófono integrado permite comprobaciones rápidas y comparaciones relativas. La respuesta y el procesamiento varían por modelo; no se debe asumir un SPL certificado.</li>
+            <li>Para decisiones de PA y valores SPL fiables, usa un micrófono de medición externo calibrado. Si cambias de teléfono o micrófono, calibra cada cadena por separado.</li>
+            <li>La referencia física de dos canales depende de que el dispositivo y navegador expongan dos canales reales. Muchos teléfonos solo entregan mono.</li>
+            <li>Para instalar, usa «Añadir a pantalla de inicio». La pantalla puede mantenerse activa durante la captura si el navegador admite Screen Wake Lock.</li>
+          </ul>
+        </div>
+        <div class="help-card">
+          <h4>🌦️ Ambiente y recorridos del show</h4>
+          <ul>
+            <li>En <b>Campo / zonas</b> registra FOH, centro, laterales y fondo con el mismo equipo y configuración.</li>
+            <li>La API meteorológica adjunta presión, temperatura, humedad y viento como contexto externo. No lee el barómetro del teléfono; necesita el secreto <code>WEATHERAPI_KEY</code> en Cloudflare.</li>
+            <li>El GPS es opcional y solo se guarda en el informe si marcas la casilla correspondiente.</li>
+            <li>La presión barométrica por sí sola suele influir menos que el viento y los gradientes térmicos. Para condiciones exactas junto al escenario, utiliza una estación ambiental local.</li>
           </ul>
         </div>
         <div class="help-card">
@@ -361,6 +384,46 @@
             <li>Si algo suena raro tras conectar hardware, recarga la página y vuelve a seleccionar la entrada.</li>
           </ul>
         </div>
+      </div>
+    </section>
+    <section class="module field-module" id="mod-field" role="tabpanel" aria-labelledby="tab-field">
+      <div class="field-intro">
+        <div>
+          <h2>Medición de cobertura por zonas</h2>
+          <p>Registra posiciones del público con la misma cadena de medición y adjunta el contexto meteorológico disponible.</p>
+        </div>
+        <div class="field-count"><strong id="fieldPointCount">0</strong><span>zonas</span></div>
+      </div>
+      <div class="field-card">
+        <h3>Evento y condiciones ambientales</h3>
+        <label class="field-label" for="fieldEvent">Nombre del evento / recinto</label>
+        <input class="field-input" id="fieldEvent" maxlength="80" placeholder="Ej.: Festival · escenario principal" />
+        <div class="field-weather-toolbar">
+          <div><strong>Ambiente exterior</strong><p id="fieldWeatherStatus" class="field-muted">No consultado. La ubicación se solicita solo al pulsar actualizar.</p></div>
+          <button class="btn btn-primary" id="fieldWeatherRefresh" type="button">Actualizar ambiente</button>
+        </div>
+        <div class="field-weather-grid" id="fieldWeatherGrid" aria-live="polite"></div>
+        <p class="field-source-note">La presión y el clima son datos externos estimados para la ubicación consultada. No provienen del barómetro interno del teléfono ni sustituyen una estación junto al escenario. Fuente meteorológica: WeatherAPI.com.</p>
+      </div>
+      <div class="field-card">
+        <h3>Registrar una posición de escucha</h3>
+        <label class="field-label" for="fieldZone">Zona / posición</label>
+        <input class="field-input" id="fieldZone" maxlength="48" placeholder="Ej.: FOH, centro, lateral izquierdo, fondo…" />
+        <label class="field-check"><input type="checkbox" id="fieldIncludeGps" /> Guardar coordenadas GPS en el informe</label>
+        <div class="field-actions">
+          <button class="btn" type="button" id="fieldResetLevel">Reiniciar intervalo SPL</button>
+          <button class="btn btn-primary" type="button" id="fieldSavePoint">＋ Registrar esta zona</button>
+        </div>
+        <p class="field-help">Mide al menos 1.5 s en cada posición. Usa el mismo teléfono, micrófono, orientación y calibración. Reinicia el intervalo SPL antes de medir la siguiente zona.</p>
+        <p id="fieldStatus" class="field-status" role="status" aria-live="polite">Inicia la captura de micrófono para registrar puntos de escucha.</p>
+      </div>
+      <div class="field-card">
+        <div class="field-list-heading"><h3>Zonas registradas y comparación</h3><button class="btn btn-sm btn-danger" type="button" id="fieldClearPoints">Vaciar zonas</button></div>
+        <div id="fieldPointList" class="field-point-list" aria-live="polite"><p class="field-muted">Todavía no hay zonas registradas.</p></div>
+      </div>
+      <div class="field-card field-caution">
+        <strong>Cómo interpretar las diferencias</strong>
+        <p>El Δ dB compara cada lectura con el primer punto de esta sesión. Si el nivel no está calibrado, úsalo solo como comparación relativa con la misma cadena. La presión barométrica suele tener menos impacto que el viento y los gradientes térmicos en la propagación exterior. El micrófono integrado sirve para orientar y comparar; para ajustes profesionales de PA utiliza un micrófono de medición calibrado.</p>
       </div>
     </section>
   </main>
@@ -408,8 +471,10 @@
   <script src="js/app/modules-tf.js?v=996e3734e779"></script>
   <script src="js/app/modules-delay.js?v=7b1efd5d2a6e"></script>
   <script src="js/app/modules-cal.js?v=cd1fd4b68700"></script>
-  <script src="js/app/ui.js?v=5e3333da04d5"></script>
-  <script src="js/app/assistant.js?v=3d3b6fa4378f"></script>
+  <script src="js/app/ui.js?v=11362c19e048"></script>
+  <script src="js/app/field-mode.js?v=a10fe2eb9cb7"></script>
+  <script src="js/app/assistant.js?v=032e9c7f17e2"></script>
+  <script src="js/app/pwa.js?v=b33e1dee4cba"></script>
   <script>
     /* Año dinámico de la barra legal — Alicelabs LLC */
     (function () { var y = document.getElementById("albYear"); if (y) y.textContent = String(new Date().getFullYear()); })();

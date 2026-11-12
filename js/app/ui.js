@@ -124,6 +124,7 @@
         this._beforeStop(); await AE.start(el('selInput').value || null, +el('selChannels').value);
         if (operation !== this._operation) return;
         this.started = true; BA_STATE.calibrated = false; this.paintCalibration(); this._afterStart();
+        global.FIELD?.keepScreenAwake?.();
         this._setOverlay(false); this._paintHardware(); await this.refreshInputs();
         if (operation !== this._operation) return;
         this.setStatus(AE.channels > AE.realChannels ? 'Entrada mono detectada: TF loopback y Delay dual requieren dos canales físicos.' : 'Captura activa · salida en silencio');
@@ -144,7 +145,8 @@
     async reboot() { await this.boot(); },
     async shutdown(message = 'Detenido · salida en silencio') {
       const operation = ++this._operation;
-      this._beforeStop(); this.started = false; this._busy = false; this._setBusy(false); this._setOverlay(true);
+      this._beforeStop(); this.started = false; global.FIELD?.releaseScreenAwake?.();
+      this._busy = false; this._setBusy(false); this._setOverlay(true);
       el('stDot')?.classList.remove('on'); this.setStatus(message);
       await AE.stop();
       if (operation === this._operation) this.setStatus(message);
@@ -211,6 +213,7 @@
         } : null,
         correctionCurve: BA_STATE.micCal ? { enabled: BA_STATE.micCalOn,
           frequencies: Array.from(BA_STATE.micCal.freqs), db: Array.from(BA_STATE.micCal.db) } : null,
+        field: global.FIELD?.exportData?.() || null,
         limitations: ['Nivel dependiente de calibración, micrófono y ganancia.',
           'Retardo interno incluye latencia de la cadena.', 'La función de transferencia depende de la referencia y sincronía.',
           'El espectro y las trazas no son certificación metrológica.',
@@ -242,6 +245,7 @@
           });
           const traces = data.transferFunction?.traces || [];
           if (!Array.isArray(traces) || traces.length > 3) throw new Error('Número de trazas TF no válido.');
+          const restoredField = data.field ? global.FIELD?.validateData?.(data.field) : null;
           const restoredTraces = traces.map(trace => {
             const mag = trace.magnitudeDb, phase = trace.phaseDeg, coh = trace.coherence;
             if (!Array.isArray(mag) || !Array.isArray(phase) || !Array.isArray(coh) ||
@@ -261,6 +265,7 @@
           });
           rta.curves = restoredCurves; tf.traces = restoredTraces;
           tf._traceSerial = restoredTraces.length;
+          if (global.FIELD) global.FIELD.importData(restoredField);
           rta.draw(); tf.draw();
           this.setStatus('Comparaciones importadas: ' + restoredCurves.length + ' curvas RTA y ' + restoredTraces.length + ' trazas TF. Calibración y hardware no se modificaron.');
         } catch (error) {

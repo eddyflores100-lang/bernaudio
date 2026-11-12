@@ -31,6 +31,7 @@
       coherence: sample(trace.coherence, 18)
     }));
     const comparison = TF?._comparisonStats?.();
+    const field = window.FIELD?.context?.() || null;
     return {
       app: 'BernAudio Model 80',
       audio: { running: !!AE?.running, sampleRate: safeNumber(AE?.sampleRate), channels: safeNumber(AE?.realChannels), fftSize: safeNumber(AE?.fftSize) },
@@ -43,6 +44,7 @@
       spectrum: rta,
       transferFunction: { measuring: !!TF?.measuring, savedTraceCount: TF?.traces?.length || 0, latestTraces: traces,
         comparison: comparison ? { meanDeltaDb: safeNumber(comparison.meanDeltaDb), maxAbsDeltaDb: safeNumber(comparison.maxAbsDeltaDb), meanCoherence: safeNumber(comparison.meanCoherence), bins: comparison.bins } : null },
+      field,
       note: 'Resumen numérico reducido. No contiene audio, nombres de dispositivos ni identificadores.'
     };
   }
