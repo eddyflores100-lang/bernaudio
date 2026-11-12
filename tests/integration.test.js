@@ -405,6 +405,30 @@ test('real TF and sequential A/B delay analyze captured signals and all output s
   h.assertHealthy();
 });
 
+test('session v2 import restores comparison overlays without overwriting calibration or hardware', async () => {
+  const h = await harness(), { MOD_RTA: rta, MOD_TF: tf, BA_STATE: state } = h.env;
+  const originalCal = state.cal;
+  const payload = { product: 'BernAudio', schemaVersion: 2,
+    spectrum: { savedCurves: [{ frequenciesHz: [100, 1000, 10000], levelsDb: [-2, -1, -3] }] },
+    transferFunction: { traces: [{ name: 'B', sampleRate: 48000, fftSize: 8192,
+      reference: 'gen', delaySamples: 18, delayAdjustmentMs: 0.1, polarityInverted: false,
+      magnitudeDb: [0, -1, -2], phaseDeg: [0, 15, 30], coherence: [0.99, 0.98, 0.97] }] } };
+  const file = h.get('sessionFile');
+  file.files = [{ size: JSON.stringify(payload).length, text: JSON.stringify(payload) }];
+  await file.fire('change');
+  assert.equal(rta.curves.length, 1); assert.equal(rta.curves[0].lv[1], -1);
+  assert.equal(tf.traces.length, 1); assert.equal(tf.traces[0].name, 'B');
+  assert.equal(tf.traces[0].coherence[2], 0.97); assert.equal(tf.traces[0].delaySamples, 18);
+  assert.equal(state.cal, originalCal); assert.equal(state.calibrated, false);
+  assert.match(h.get('stText').textContent, /Comparaciones importadas/);
+  const invalid = { ...payload, schemaVersion: 999 };
+  file.files = [{ size: 100, text: JSON.stringify(invalid) }];
+  await file.fire('change');
+  assert.match(h.get('stText').textContent, /Sesión no importada/);
+  assert.equal(tf.traces.length, 1, 'invalid import must not replace current comparisons');
+  h.assertHealthy();
+});
+
 test('microphone denial leaves an actionable overlay and generator-only mode still works', async () => {
   const h = await harness({ denyMicrophone: true });
   await h.click('btnStart');

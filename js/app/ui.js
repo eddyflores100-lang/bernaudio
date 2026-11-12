@@ -62,6 +62,8 @@
         BA_STATE.calibrated = true; this.calibrationChanged(); this.setStatus('Offset manual declarado; vuelve a comprobarlo si cambia la ganancia o la entrada.');
       });
       el('btnSession').addEventListener('click', () => this.exportSession());
+      el('btnImportSession').addEventListener('click', () => el('sessionFile').click());
+      el('sessionFile').addEventListener('change', event => this.importSession(event.target.files?.[0]));
       el('rtaExport').addEventListener('click', () => {
         const r = MODULES.rta;
         if (!r.disp?.some(Number.isFinite)) { this.setStatus('Espera a tener un espectro válido.'); return; }
@@ -216,6 +218,56 @@
       };
       global.BAU.download('bernaudio_session_v2.json', JSON.stringify(report, null, 2), 'application/json');
       this.setStatus('Informe de sesión v2 exportado con espectro y trazas guardadas.');
+    },
+    importSession(file) {
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) { this.setStatus('Archivo demasiado grande (máximo 5 MB).'); return; }
+      const reader = new FileReader();
+      reader.onerror = () => this.setStatus('No se pudo leer el archivo de sesión.');
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(String(reader.result || ''));
+          if (!data || data.product !== 'BernAudio' || data.schemaVersion !== 2)
+            throw new Error('Se requiere un informe BernAudio de versión 2.');
+          const rta = MODULES.rta, tf = MODULES.tf;
+          const curves = data.spectrum?.savedCurves || [];
+          if (!Array.isArray(curves) || curves.length > 4) throw new Error('Número de curvas RTA no válido.');
+          const restoredCurves = curves.map(curve => {
+            const f = curve.frequenciesHz, lv = curve.levelsDb;
+            if (!Array.isArray(f) || !Array.isArray(lv) || f.length < 2 || f.length !== lv.length || f.length > 4096 ||
+                f.some((v, i) => !Number.isFinite(v) || v <= 0 || (i && v <= f[i - 1])) ||
+                lv.some(v => v !== null && !Number.isFinite(v)))
+              throw new Error('Curva RTA dañada o fuera de rango.');
+            return { bands: f.slice(), lv: Float64Array.from(lv, v => v == null ? NaN : v) };
+          });
+          const traces = data.transferFunction?.traces || [];
+          if (!Array.isArray(traces) || traces.length > 3) throw new Error('Número de trazas TF no válido.');
+          const restoredTraces = traces.map(trace => {
+            const mag = trace.magnitudeDb, phase = trace.phaseDeg, coh = trace.coherence;
+            if (!Array.isArray(mag) || !Array.isArray(phase) || !Array.isArray(coh) ||
+                mag.length < 2 || mag.length !== phase.length || mag.length !== coh.length || mag.length > 16385 ||
+                !Number.isInteger(trace.fftSize) || trace.fftSize < 256 || trace.fftSize > 32768 ||
+                !Number.isFinite(trace.sampleRate) || trace.sampleRate < 8000 || trace.sampleRate > 384000 ||
+                [mag, phase, coh].some(values => values.some(v => v !== null && !Number.isFinite(v))))
+              throw new Error('Traza de transferencia dañada o fuera de rango.');
+            return { name: String(trace.name || 'Importada').slice(0, 12), createdAt: trace.createdAt || null,
+              sampleRate: trace.sampleRate, fftSize: trace.fftSize, reference: trace.reference || null,
+              delaySamples: Number.isFinite(trace.delaySamples) ? trace.delaySamples : null,
+              delayAdjustmentMs: Number.isFinite(trace.delayAdjustmentMs) ? trace.delayAdjustmentMs : null,
+              polarityInverted: !!trace.polarityInverted,
+              mag: Float64Array.from(mag, v => v == null ? NaN : v),
+              phase: Float64Array.from(phase, v => v == null ? NaN : v),
+              coherence: Float64Array.from(coh, v => v == null ? NaN : v) };
+          });
+          rta.curves = restoredCurves; tf.traces = restoredTraces;
+          tf._traceSerial = restoredTraces.length;
+          rta.draw(); tf.draw();
+          this.setStatus('Comparaciones importadas: ' + restoredCurves.length + ' curvas RTA y ' + restoredTraces.length + ' trazas TF. Calibración y hardware no se modificaron.');
+        } catch (error) {
+          this.setStatus('Sesión no importada: ' + (error?.message || 'archivo no válido'));
+        } finally { el('sessionFile').value = ''; }
+      };
+      reader.readAsText(file);
     },
     setStatus(text) { if (el('stText')) el('stText').textContent = text; }
   };

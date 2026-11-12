@@ -74,7 +74,9 @@
       <span class="chip" id="calChip" title="dB SPL correspondientes a 0 dBFS">94.0 dB</span>
     </div>
     <button class="btn btn-sm" id="btnResume">Reanudar audio</button>
-    <button class="btn btn-sm" id="btnSession">Informe de sesión</button>
+    <button class="btn btn-sm" id="btnSession">Exportar sesión</button>
+    <button class="btn btn-sm" id="btnImportSession">Importar sesión</button>
+    <input type="file" id="sessionFile" accept=".json,application/json" hidden>
     <button class="btn btn-danger btn-sm" id="btnStop">■ Detener</button>
   </header>
 
@@ -405,7 +407,7 @@
   <script src="js/app/modules-tf.js?v=c65dc1893bc2"></script>
   <script src="js/app/modules-delay.js?v=7b1efd5d2a6e"></script>
   <script src="js/app/modules-cal.js?v=cd1fd4b68700"></script>
-  <script src="js/app/ui.js?v=ca96f789e954"></script>
+  <script src="js/app/ui.js?v=5e3333da04d5"></script>
   <script>
     /* Año dinámico de la barra legal — Alicelabs LLC */
     (function () { var y = document.getElementById("albYear"); if (y) y.textContent = String(new Date().getFullYear()); })();
