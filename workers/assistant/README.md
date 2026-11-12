@@ -29,7 +29,7 @@ orientativas y deben contrastarse con mediciones repetibles.
 
 ## Despliegue
 
-El Worker ya se publicó en Cloudflare como `bernaudio-ai`, con binding `AI`.
+El Worker ya se publicó en Cloudflare como `bernaudio-ai`, con binding `AI`. La subruta pública `workers.dev` del script está habilitada en el subdominio de la cuenta.
 Para actualizarlo desde GitHub Actions, añade el secreto de repositorio
 `CLOUDFLARE_API_TOKEN` con permisos para editar Workers. El workflow usa el
 Account ID incluido como variable de despliegue no secreta y actualiza el Worker
