@@ -44,10 +44,13 @@ async function precacheApplication(cache) {
     if (!cached || !url.pathname.endsWith('.js')) continue;
 
     const source = await cached.response.clone().text();
-    for (const match of source.matchAll(/(?:addModule|importScripts)\(["']([^"']+)["']\)/g)) {
-      queue.push(new URL(match[1], url).href);
+    for (const match of source.matchAll(/addModule\(["']([^"']+)["']\)/g)) {
+      queue.push(new URL(match[1], scope).href);
     }
     for (const match of source.matchAll(/new URL\(["']([^"']+\.js[^"']*)["']/g)) {
+      queue.push(new URL(match[1], scope).href);
+    }
+    for (const match of source.matchAll(/importScripts\(["']([^"']+)["']\)/g)) {
       queue.push(new URL(match[1], url).href);
     }
   }
