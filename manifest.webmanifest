@@ -1,0 +1,22 @@
+{
+  "id": "./app.html",
+  "name": "BernAudio · Analizador de campo",
+  "short_name": "BernAudio",
+  "description": "Analizador de audio y registro de mediciones por zonas con contexto ambiental.",
+  "lang": "es",
+  "start_url": "./app.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#101214",
+  "theme_color": "#101214",
+  "icons": [
+    {
+      "src": "assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
