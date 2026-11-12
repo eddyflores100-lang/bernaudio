@@ -464,3 +464,27 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible { 
   .ro.big{grid-column:span 1}
   .ro.big .v{font-size:clamp(24px,5vw,36px)}
 }
+
+/* Touch-first audience coverage map */
+.field-stage-map{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--line-soft);border-radius:12px;background:var(--panel-2)}
+.field-stage{align-self:center;width:min(78%,420px);padding:9px 14px;text-align:center;border:1px solid rgba(255,162,62,.48);border-radius:8px 8px 24px 24px;background:rgba(255,162,62,.08);color:var(--amber);font-size:10px;font-weight:700;letter-spacing:.12em}
+.field-zone-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.field-zone-preset{display:flex;min-width:0;min-height:76px;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:5px;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--txt);text-align:left;cursor:pointer;transition:border-color .15s,background .15s,transform .15s}
+.field-zone-preset span{font-size:11px;line-height:1.25;color:var(--muted)}
+.field-zone-preset strong{font:600 17px var(--mono);color:var(--txt)}
+.field-zone-preset small{font-size:9px;color:var(--muted)}
+.field-zone-preset[aria-pressed="true"]{border-color:var(--amber);background:rgba(255,162,62,.1);outline:2px solid rgba(255,162,62,.17);outline-offset:0}
+.field-zone-preset.has-reading{border-color:rgba(45,212,191,.55)}
+.field-zone-preset.has-reading strong{color:var(--teal)}
+.field-zone-preset:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.field-zone-foh{align-self:center;width:min(55%,320px);min-height:58px;align-items:center;text-align:center}
+.field-zone-foh span{font-size:12px}
+.field-zone-foh strong{font-size:16px}
+@media(max-width:720px){
+ .field-stage-map{padding:9px;gap:8px}
+ .field-zone-grid{gap:6px}
+ .field-zone-preset{min-height:76px;padding:7px}
+ .field-zone-preset span{font-size:10px}
+ .field-zone-preset strong{font-size:15px}
+ .field-zone-preset small{font-size:8px}
+}
