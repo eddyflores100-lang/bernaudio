@@ -627,3 +627,42 @@ test('field weather refresh sends coordinates only in POST body and stops when l
   await h.click('btnStop');
   h.assertHealthy();
 });
+
+
+test('field GPS opt-in captures a fresh position for every measurement point', async () => {
+  const h = await harness();
+  await h.click('btnStart');
+  await h.click('tab-field');
+  const positions = [
+    { coords: { latitude: -0.1801, longitude: -78.4672, accuracy: 8 } },
+    { coords: { latitude: -0.1815, longitude: -78.4658, accuracy: 6 } }
+  ];
+  let index = 0;
+  h.env.navigator.geolocation = {
+    getCurrentPosition(resolve, reject, options) {
+      assert.equal(options.enableHighAccuracy, true);
+      resolve(positions[index++]);
+    }
+  };
+  h.get('fieldIncludeGps').checked = true;
+
+  h.get('fieldZone').value = 'FOH';
+  h.capture(96000, sine());
+  await h.click('fieldSavePoint');
+  assert.deepEqual(h.env.FIELD.points[0].location && {
+    latitude: h.env.FIELD.points[0].location.latitude,
+    longitude: h.env.FIELD.points[0].location.longitude
+  }, { latitude: -0.1801, longitude: -78.4672 });
+
+  await h.click('fieldResetLevel');
+  h.get('fieldZone').value = 'Fondo';
+  h.capture(96000, sine(0.08));
+  await h.click('fieldSavePoint');
+  assert.deepEqual(h.env.FIELD.points[1].location && {
+    latitude: h.env.FIELD.points[1].location.latitude,
+    longitude: h.env.FIELD.points[1].location.longitude
+  }, { latitude: -0.1815, longitude: -78.4658 });
+  assert.equal(index, 2, 'GPS is requested for every opted-in measurement point');
+  await h.click('btnStop');
+  h.assertHealthy();
+});
