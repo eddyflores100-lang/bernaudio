@@ -3,7 +3,10 @@ const APP_SHELL = [
   './app.html',
   './manifest.webmanifest',
   './assets/favicon.svg',
-  './assets/pwa-icon.svg'
+  './assets/pwa-icon.svg',
+  './assets/pwa-icon-192.png',
+  './assets/pwa-icon-512.png',
+  './assets/apple-touch-icon.png'
 ];
 const STATIC_ASSET = /\.(?:js|css|svg|png|webp|ico|woff2?)$/i;
 
