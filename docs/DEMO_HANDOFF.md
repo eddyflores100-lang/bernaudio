@@ -1,6 +1,8 @@
 # BernAudio — paquete de demostración y entrega QA
 
-Fecha de validación automatizada: 2026-11-12
+Fecha de validación automatizada: 2026-11-13
+
+Commit de entrega revisado: `a723304f7ee70dbc78e34a4f7cd722c706c35057` (PR #18, comparación de transferencia A/B/C).
 
 ## Enlaces de demostración
 
@@ -13,12 +15,13 @@ Fecha de validación automatizada: 2026-11-12
 
 ## Resultado de pruebas virtuales
 
-La ejecución de GitHub Actions asociada al PR de validación completó los trabajos de Node.js 22 y Node.js 24. Ambos pasos de `npm test` y `npm run check` finalizaron correctamente.
+La ejecución de GitHub Actions del commit de entrega completó los trabajos de Node.js 22 y Node.js 24. En ambas versiones, `npm test` y `npm run check` finalizaron correctamente.
 
-En el registro detallado de Node.js 22:
-- **98 pruebas aprobadas**
-- **0 fallidas**
-- Duración de la suite: aproximadamente 4,9 segundos
+Resultados comprobados en los logs:
+- **124 pruebas aprobadas por versión** (Node.js 22 y Node.js 24)
+- **0 fallidas** en ambas versiones
+- **220 comprobaciones de sintaxis y enlaces locales** por versión
+- Workflow posterior a la fusión en `main`: build y deploy completados correctamente.
 
 Cobertura observada:
 - FFT, espectros, normalización de potencia y ponderaciones A/C.
@@ -31,7 +34,7 @@ Cobertura observada:
 - Ciclo de vida del audio, permisos denegados, desconexión, cancelación y limpieza.
 - Navegación, controles accesibles y simulación de arreglos de subgraves.
 
-La integración automatizada utiliza un navegador simulado y señales deterministas/sintéticas. **No utiliza micrófonos, altavoces ni interfaces físicas** y no demuestra exactitud acústica absoluta.
+La integración automatizada utiliza un navegador simulado y señales deterministas/sintéticas. **No utiliza micrófonos, altavoces ni interfaces físicas** y no demuestra exactitud acústica absoluta. El resultado del CI tampoco valida la disponibilidad pública del sitio desde todas las regiones ni la compatibilidad de hardware.
 
 ## Cómo presentar la demo
 
