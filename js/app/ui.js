@@ -62,6 +62,7 @@
         BA_STATE.calibrated = true; this.calibrationChanged(); this.setStatus('Offset manual declarado; vuelve a comprobarlo si cambia la ganancia o la entrada.');
       });
       el('btnSession').addEventListener('click', () => this.exportSession());
+      el('btnTechnicalReport').addEventListener('click', () => this.exportTechnicalReport());
       el('btnImportSession').addEventListener('click', () => el('sessionFile').click());
       el('sessionFile').addEventListener('change', event => this.importSession(event.target.files?.[0]));
       el('rtaExport').addEventListener('click', () => {
@@ -183,10 +184,10 @@
       MODULES[name]?.onShow?.();
       if (name === 'field') global.FIELD?.onShow?.();
     },
-    exportSession() {
+    createSessionSnapshot() {
       const rta = MODULES.rta, tf = MODULES.tf;
       const finite = values => Array.from(values || [], value => Number.isFinite(value) ? value : null);
-      const report = {
+      return {
         product: 'BernAudio', schemaVersion: 2, createdAt: new Date().toISOString(),
         environment: { userAgent: global.navigator?.userAgent || 'unknown',
           language: global.navigator?.language || 'unknown', platform: global.navigator?.platform || 'unknown' },
@@ -222,8 +223,19 @@
           'El espectro y las trazas no son certificación metrológica.',
           'No se incluye audio bruto ni identificadores de dispositivos.']
       };
+    },
+    exportSession() {
+      const report = this.createSessionSnapshot();
       global.BAU.download('bernaudio_session_v2.json', JSON.stringify(report, null, 2), 'application/json');
       this.setStatus('Informe de sesión v2 exportado con espectro y trazas guardadas.');
+    },
+    exportTechnicalReport() {
+      const report = this.createSessionSnapshot();
+      if (!global.BA_REPORT?.open(report)) {
+        this.setStatus('El navegador bloqueó la ventana del informe. Permite ventanas emergentes para guardar el PDF.');
+        return;
+      }
+      this.setStatus('Informe técnico abierto. En la nueva ventana pulsa “Imprimir / Guardar como PDF”.');
     },
     importSession(file) {
       if (!file) return;
