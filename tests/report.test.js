@@ -82,6 +82,6 @@ test('opens a local print view and reports popup blocking', () => {
   assert.equal(closed, true);
   assert.match(written, /Informe técnico de medición/);
 
-  const blocked = loadReport(() => null);
-  assert.equal(blocked.BA_REPORT.open(sample()), false);
+  h.open = () => null;
+  assert.equal(h.BA_REPORT.open(sample()), false);
 });
