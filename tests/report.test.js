@@ -69,7 +69,7 @@ test('builds a printable technical report with measurements and explicit limits'
   assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
   assert.doesNotMatch(html, /<script>alert\(1\)<\/script>/);
   assert.doesNotMatch(html, /-0\.2|-78\.5/, 'precise GPS coordinates must not be included by default');
-  assert.doesNotMatch(html, /rawAudio|data:audio\\//i);
+  assert.doesNotMatch(html, /rawAudio|data:audio\//i);
 });
 
 test('opens a local print view and reports popup blocking', () => {
