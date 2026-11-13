@@ -405,21 +405,32 @@ test('real TF and sequential A/B delay analyze captured signals and all output s
   h.assertHealthy();
 });
 
-test('TF A/B comparison reports magnitude delta across traces with different FFT grids', async () => {
+test('TF A/B/C comparison uses A as the shared baseline across different FFT grids', async () => {
   const h = await harness(), tf = h.env.MOD_TF;
   const first = { name: 'A', sampleRate: 48000, fftSize: 8192,
     mag: new Float64Array(4097).fill(-1), coherence: new Float64Array(4097).fill(0.9) };
   const second = { name: 'B', sampleRate: 44100, fftSize: 4096,
     mag: new Float64Array(2049).fill(-3), coherence: new Float64Array(2049).fill(0.8) };
-  tf.traces = [first, second];
-  const stats = tf._comparisonStats();
-  assert.ok(stats && stats.bins > 1000);
-  near(stats.meanDeltaDb, -2, 1e-9);
-  near(stats.maxAbsDeltaDb, 2, 1e-9);
-  near(stats.meanCoherence, 0.85, 1e-9);
+  const third = { name: 'C', sampleRate: 96000, fftSize: 8192,
+    mag: new Float64Array(4097).fill(2), coherence: new Float64Array(4097).fill(0.7) };
+  tf.traces = [first, second, third];
+  const comparisons = tf._comparisonStats();
+  assert.equal(comparisons.length, 2);
+  const statsB = comparisons.find(item => item.traceB === 'B');
+  const statsC = comparisons.find(item => item.traceB === 'C');
+  assert.ok(statsB && statsB.bins > 1000);
+  assert.ok(statsC && statsC.bins > 1000);
+  near(statsB.meanDeltaDb, -2, 1e-9);
+  near(statsB.maxAbsDeltaDb, 2, 1e-9);
+  near(statsB.meanCoherence, 0.85, 1e-9);
+  near(statsC.meanDeltaDb, 3, 1e-9);
+  near(statsC.maxAbsDeltaDb, 3, 1e-9);
+  near(statsC.meanCoherence, 0.8, 1e-9);
   tf._paintComparisonSummary();
   assert.match(h.get('tfCompareSummary').textContent, /B − A/);
+  assert.match(h.get('tfCompareSummary').textContent, /C − A/);
   assert.match(h.get('tfCompareSummary').textContent, /-2\.00 dB/);
+  assert.match(h.get('tfCompareSummary').textContent, /3\.00 dB/);
   h.assertHealthy();
 });
 
