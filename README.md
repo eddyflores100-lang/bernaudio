@@ -191,3 +191,7 @@ personales ni grabaciones sensibles en incidencias públicas.
 
 Código bajo [MIT](LICENSE), © 2026 Alicelabs LLC. La licencia no concede derechos
 sobre las marcas del proyecto; consulta el aviso de marca incluido en `LICENSE`.
+
+## Comparación de transferencia A/B/C
+
+El módulo de función de transferencia conserva hasta tres trazas por sesión. Guarda primero **A** como referencia y después captura **B** y **C**. El resumen presenta **B − A** y **C − A**, ambos contra la misma traza base; no compara C contra B. Para cada par calcula la diferencia media y máxima de magnitud, coherencia media y cantidad de bins válidos en el rango común. Cuando las trazas tienen distintas frecuencias de muestreo o tamaños FFT, interpola la traza comparada sobre las frecuencias de A. Los resultados solo son comparables si la cadena, posición, ganancia y condiciones de captura se mantienen controladas.
